@@ -37,11 +37,11 @@ type Opts struct {
 func NewStorage(o Opts) *Container {
 	return &Container{
 		Opts:             o,
-		userStorage:      make([]*entities.User, 1000000),
-		locationStorage:  make([]*entities.Location, 1000000),
-		visitStorage:     make([]*entities.Visit, 1000000),
-		userToVisits:     make([][]int64, 1000000),
-		locationToVisits: make([][]int64, 1000000),
+		userStorage:      make([]*entities.User, 100000),
+		locationStorage:  make([]*entities.Location, 100000),
+		visitStorage:     make([]*entities.Visit, 100000),
+		userToVisits:     make([][]int64, 100000),
+		locationToVisits: make([][]int64, 100000),
 	}
 }
 
@@ -83,28 +83,30 @@ func (c *Container) growUserToVisits(n int64) {
 	if n >= int64(len(c.userToVisits)) {
 		tmp := make([][]int64, n*3/2)
 		copy(tmp, c.userToVisits)
-		//c.userToVisits = tmp
+		c.userToVisits = tmp
 	}
 }
 func (c *Container) growLocationToVisits(n int64) {
 	if n >= int64(len(c.locationToVisits)) {
 		tmp := make([][]int64, n*3/2)
 		copy(tmp, c.locationToVisits)
-		//c.locationToVisits = tmp
+		c.locationToVisits = tmp
 	}
 }
 func (c *Container) growUser(n int64) {
 	if n >= int64(len(c.userStorage)) {
 		tmp := make([]*entities.User, n*3/2)
 		copy(tmp, c.userStorage)
-		//c.userStorage = tmp
+		c.userStorage = tmp
 	}
 }
 
 func (c *Container) LoadUsers(vs []*entities.User) {
 	c.Lock()
 	for _, v := range vs {
-		c.growUser(int64(v.ID))
+		c.growUser(v.ID)
+		c.growUserToVisits(v.ID)
+		c.growLocationToVisits(v.ID)
 		c.userStorage[v.ID] = v
 	}
 	c.Unlock()
@@ -148,7 +150,7 @@ func (c *Container) growLocation(n int64) {
 	if n >= int64(len(c.locationStorage)) {
 		tmp := make([]*entities.Location, n*3/2)
 		copy(tmp, c.locationStorage)
-		//c.locationStorage = tmp
+		c.locationStorage = tmp
 	}
 }
 
@@ -214,7 +216,7 @@ func (c *Container) growVisit(n int64) {
 	if n >= int64(len(c.visitStorage)) {
 		tmp := make([]*entities.Visit, n*3/2)
 		copy(tmp, c.visitStorage)
-		//c.visitStorage = tmp
+		c.visitStorage = tmp
 	}
 }
 
