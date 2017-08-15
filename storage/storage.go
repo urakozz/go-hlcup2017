@@ -83,18 +83,21 @@ func (c *Container) growUserToVisits(n int64) {
 	if n >= int64(len(c.userToVisits)) {
 		tmp := make([][]int64, n*3/2)
 		copy(tmp, c.userToVisits)
+		//c.userToVisits = tmp
 	}
 }
 func (c *Container) growLocationToVisits(n int64) {
 	if n >= int64(len(c.locationToVisits)) {
 		tmp := make([][]int64, n*3/2)
 		copy(tmp, c.locationToVisits)
+		//c.locationToVisits = tmp
 	}
 }
 func (c *Container) growUser(n int64) {
 	if n >= int64(len(c.userStorage)) {
 		tmp := make([]*entities.User, n*3/2)
 		copy(tmp, c.userStorage)
+		//c.userStorage = tmp
 	}
 }
 
@@ -145,6 +148,7 @@ func (c *Container) growLocation(n int64) {
 	if n >= int64(len(c.locationStorage)) {
 		tmp := make([]*entities.Location, n*3/2)
 		copy(tmp, c.locationStorage)
+		//c.locationStorage = tmp
 	}
 }
 
@@ -210,6 +214,7 @@ func (c *Container) growVisit(n int64) {
 	if n >= int64(len(c.visitStorage)) {
 		tmp := make([]*entities.Visit, n*3/2)
 		copy(tmp, c.visitStorage)
+		//c.visitStorage = tmp
 	}
 }
 
@@ -285,7 +290,7 @@ func (c *Container) GetVisit(ID int64) (*entities.Visit, error) {
 	}
 	return nil, ErrNotFound
 }
-func (c *Container) ListVisits() ([]*entities.Visit) {
+func (c *Container) ListVisits() []*entities.Visit {
 	c.RLock()
 	defer c.RUnlock()
 	tmp := make([]*entities.Visit, 0, len(c.visitStorage)/4)

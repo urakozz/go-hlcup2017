@@ -451,7 +451,6 @@ type LocationContainer struct {
 }
 
 func Unzip() {
-	return
 	r, err := zip.OpenReader("tmp/data/data.zip")
 	if err != nil {
 		log.Fatal(err)

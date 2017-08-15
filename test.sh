@@ -19,5 +19,6 @@ curl localhost:3000/locations/101/avg
 curl localhost:3000/visits/1000 -XPOST -d '{"location": 101}'
 curl localhost:3000/locations/100/avg
 curl localhost:3000/locations/101/avg
-#curl localhost:3000/visits/888997 -XPOST -d '{"location": 1}'
-#curl localhost:3000/locations/777777/avg
+curl localhost:3000/locations/100 -XPOST -d '{"place": "upd100"}'
+curl localhost:3000/locations/101 -XPOST -d '{"place": "upd101"}'
+curl localhost:3000/users/11/visits

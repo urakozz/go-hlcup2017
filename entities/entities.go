@@ -21,6 +21,18 @@ type Location struct {
 	Country  *string `json:"country"`
 }
 
+//func (u *Location) Clone() *Location {
+//	v := &Location{}
+//	*v = *u
+//	v.ID = u.ID
+//
+//	*v.Distance = *u.Distance
+//	*v.City = *u.City
+//	*v.Place = *u.Place
+//	*v.Country = *u.Country
+//	return v
+//}
+
 func (u *Location) Update(new *Location) {
 	if new.Distance != nil {
 		u.Distance = new.Distance
@@ -53,7 +65,7 @@ func (u *Location) Validate() error {
 	if u.Country == nil {
 		return errors.New("country nil")
 	}
-	if len(*u.Country) > 50  {
+	if len(*u.Country) > 50 {
 		return errors.New("country too long")
 	}
 	return nil
@@ -77,6 +89,17 @@ type User struct {
 	Gender    *string `json:"gender"`
 	Birthdate *int64  `json:"birth_date,omitempty"`
 }
+
+//func (u *User) Clone() *User {
+//	v := &User{}
+//	*v = *u
+//	v.ID = u.ID
+//	*v.Email = *u.Email
+//	*v.FirstName = *u.LastName
+//	*v.Gender = *u.Gender
+//	*v.Birthdate = *u.Birthdate
+//	return v
+//}
 
 func (u *User) Update(new *User) {
 	if new.Email != nil {
@@ -142,6 +165,18 @@ type Visit struct {
 	User       *User     `json:"-"`
 	Location   *Location `json:"-"`
 }
+
+//func (u *Visit) Clone() *Visit {
+//	newv := &Visit{}
+//	*newv = *u
+//	*newv.LocationID = *u.LocationID
+//	*newv.UserID = *u.UserID
+//	*newv.VisitedAt = *u.VisitedAt
+//	*newv.Mark = *u.Mark
+//	newv.User = u.User.Clone()
+//	newv.Location = u.Location.Clone()
+//	return newv
+//}
 
 func (u *Visit) Validate() error {
 	if u.LocationID == nil {
