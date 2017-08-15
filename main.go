@@ -457,9 +457,7 @@ func Unzip() {
 	}
 
 	defer r.Close()
-	users := &UserContainer{}
-	visits := &VisitContainer{}
-	locations := &LocationContainer{}
+
 	for _, f := range r.File {
 		if f.FileInfo().IsDir() {
 			continue
@@ -474,6 +472,7 @@ func Unzip() {
 
 		dec := json.NewDecoder(rc)
 		if strings.HasPrefix(f.Name, "locations") {
+			locations := &LocationContainer{}
 			err := dec.Decode(locations)
 			if err != nil {
 				log.Fatal(err)
@@ -481,6 +480,7 @@ func Unzip() {
 			DataContainer.LoadLocations(locations.Locations)
 			log.Println("loaded locations", len(locations.Locations))
 		} else if strings.HasPrefix(f.Name, "users") {
+			users := &UserContainer{}
 			err := dec.Decode(users)
 			if err != nil {
 				log.Fatal(err)
@@ -488,6 +488,7 @@ func Unzip() {
 			DataContainer.LoadUsers(users.Users)
 			log.Println("loaded users", len(users.Users))
 		} else if strings.HasPrefix(f.Name, "visits") {
+			visits := &VisitContainer{}
 			err := dec.Decode(visits)
 			if err != nil {
 				log.Fatal(err)
