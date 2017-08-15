@@ -2,10 +2,9 @@ package storage
 
 import (
 	"errors"
-	"sync"
-
+	"log"
 	"sort"
-
+	"sync"
 	"time"
 
 	"../entities"
@@ -251,6 +250,9 @@ func (c *Container) UpdateVisit(u *entities.Visit) error {
 	}
 
 	diff := visit.Update(u)
+	visit.User = c.userStorage[*visit.UserID]
+	visit.Location = c.locationStorage[*visit.LocationID]
+
 	// process UserChange
 	if diff.UserID.HasDiff && diff.UserID.Old != diff.UserID.New {
 		// remove from old
@@ -267,6 +269,7 @@ func (c *Container) UpdateVisit(u *entities.Visit) error {
 		c.userToVisits[diff.UserID.New] = append(c.userToVisits[diff.UserID.New], u.ID)
 	}
 	// process Location Change
+	log.Println("start updating location", u.ID, diff.LocationID.Old, diff.LocationID.New)
 	if diff.LocationID.HasDiff && diff.LocationID.Old != diff.LocationID.New {
 		if tmp := c.locationToVisits[diff.LocationID.Old]; len(tmp) != 0 {
 			var updatedOld []int64
