@@ -484,4 +484,5 @@ func Unzip() {
 		rc.Close()
 	}
 	DataContainer.ProcessLoad()
+	DataContainer.WarmUp()
 }

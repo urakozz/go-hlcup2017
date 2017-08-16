@@ -67,6 +67,42 @@ func (c *Container) ProcessLoad() {
 	}
 	c.Unlock()
 }
+func (c *Container) WarmUp() {
+	c.RLock()
+	defer c.RUnlock()
+	var sum int64
+	for _, v := range c.visitStorage {
+		if v == nil {
+			continue
+		}
+		sum += v.ID
+	}
+	for _, v := range c.locationStorage {
+		if v == nil {
+			continue
+		}
+		sum += v.ID
+	}
+	for _, v := range c.userStorage {
+		if v == nil {
+			continue
+		}
+		sum += v.ID
+	}
+	for _, v := range c.userToVisits {
+		if v == nil {
+			continue
+		}
+		sum += int64(len(v))
+	}
+	for _, v := range c.locationToVisits {
+		if v == nil {
+			continue
+		}
+		sum += int64(len(v))
+	}
+	log.Println(sum)
+}
 
 func (c *Container) NewUser(u *entities.User) {
 	//id := atomic.AddInt32(&c.userMaxId, 1)
