@@ -353,6 +353,10 @@ func getUserVisits(w http.ResponseWriter, r *http.Request) {
 	}
 
 	visits := DataContainer.GetUserVisitsFiltered(int64(id), opts)
+	//buf := bytes.NewBufferString(`{"visits":`)
+	//json.NewEncoder(buf).Encode(visits)
+	//buf.WriteString("}")
+	//w.Write(buf.Bytes())
 	if len(visits) == 0 {
 		w.Write([]byte(`{"visits":[]}`))
 		return
