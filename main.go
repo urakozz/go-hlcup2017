@@ -1,26 +1,28 @@
 package main
 
 import (
+	"archive/zip"
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
+	"time"
 
 	"./entities"
 	"./storage"
-	"archive/zip"
-	"bytes"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"io/ioutil"
-	"os"
-	"strings"
-	"time"
+	"github.com/mailru/easyjson"
 )
 
 var DataContainer = storage.NewStorage(storage.Opts{})
+var emptyResp = []byte("{}")
 
 func main() {
 	var validate = flag.Bool("validate", false, "build validation")
@@ -71,7 +73,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	b, err := json.Marshal(u)
+	b, err := u.MarshalJSON()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -92,7 +94,8 @@ func getLocation(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	b, err := json.Marshal(u)
+
+	b, err := u.MarshalJSON()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -118,7 +121,7 @@ func getVisit(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	b, err := json.Marshal(u)
+	b, err := u.MarshalJSON()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -145,7 +148,7 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	u := &entities.User{}
-	err = json.NewDecoder(bytes.NewReader(b)).Decode(u)
+	err = easyjson.Unmarshal(b, u)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -161,7 +164,7 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Write([]byte("{}"))
+	w.Write(emptyResp)
 }
 
 // Done
@@ -182,7 +185,7 @@ func updateLocation(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	u := &entities.Location{}
-	err = json.NewDecoder(bytes.NewReader(b)).Decode(u)
+	err = easyjson.Unmarshal(b, u)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -198,7 +201,7 @@ func updateLocation(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Write([]byte("{}"))
+	w.Write(emptyResp)
 }
 
 // Done
@@ -218,7 +221,7 @@ func updateVisit(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	u := &entities.Visit{}
-	err = json.NewDecoder(bytes.NewReader(b)).Decode(u)
+	err = easyjson.Unmarshal(b, u)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -238,14 +241,15 @@ func updateVisit(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	w.Write([]byte("{}"))
+	w.Write(emptyResp)
 }
 
 // NEW
 func newUser(w http.ResponseWriter, r *http.Request) {
 	log.Println("newUser")
 	u := &entities.User{}
-	err := json.NewDecoder(r.Body).Decode(u)
+
+	err := easyjson.UnmarshalFromReader(r.Body, u)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -265,7 +269,7 @@ func newUser(w http.ResponseWriter, r *http.Request) {
 func newLocation(w http.ResponseWriter, r *http.Request) {
 	log.Println("newLocation")
 	u := &entities.Location{}
-	err := json.NewDecoder(r.Body).Decode(u)
+	err := easyjson.UnmarshalFromReader(r.Body, u)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -280,12 +284,12 @@ func newLocation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	DataContainer.NewLocation(u)
-	w.Write([]byte("{}"))
+	w.Write(emptyResp)
 }
 func newVisit(w http.ResponseWriter, r *http.Request) {
 	log.Println("newVisit")
 	u := &entities.Visit{}
-	err := json.NewDecoder(r.Body).Decode(u)
+	err := easyjson.UnmarshalFromReader(r.Body, u)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -303,7 +307,7 @@ func newVisit(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	w.Write([]byte("{}"))
+	w.Write(emptyResp)
 }
 
 // CUSTOM
@@ -353,16 +357,12 @@ func getUserVisits(w http.ResponseWriter, r *http.Request) {
 	}
 
 	visits := DataContainer.GetUserVisitsFiltered(int64(id), opts)
-	//buf := bytes.NewBufferString(`{"visits":`)
-	//json.NewEncoder(buf).Encode(visits)
-	//buf.WriteString("}")
-	//w.Write(buf.Bytes())
-	if len(visits) == 0 {
-		w.Write([]byte(`{"visits":[]}`))
-		return
-	}
-	res := &ShortVisitContainer{Visits: visits}
-	b, err := json.Marshal(res)
+
+	//if len(visits.Visits) == 0 {
+	//	w.Write([]byte(`{"visits":[]}`))
+	//	return
+	//}
+	b, err := easyjson.Marshal(visits)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println(err)
@@ -427,31 +427,13 @@ func getLocationAvg(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	visits := DataContainer.GetLocationVisitsFiltered(int64(id), opts)
-	if len(visits) == 0 {
+	avg := DataContainer.GetLocationVisitsFilteredAvg(int64(id), opts)
+	if avg == 0 {
 		w.Write([]byte(`{"avg":0.0}`))
 		return
 	}
-	var sum int64
-	for _, v := range visits {
-		sum += int64(*v.Mark)
-	}
-	avg := float64(sum) / float64(len(visits))
 
 	w.Write([]byte(fmt.Sprintf(`{"avg":%.5f}`, avg)))
-}
-
-type ShortVisitContainer struct {
-	Visits []*entities.ShortVisit `json:"visits"`
-}
-type VisitContainer struct {
-	Visits []*entities.Visit `json:"visits"`
-}
-type UserContainer struct {
-	Users []*entities.User `json:"users"`
-}
-type LocationContainer struct {
-	Locations []*entities.Location `json:"locations"`
 }
 
 func Unzip() {
@@ -474,26 +456,25 @@ func Unzip() {
 			return
 		}
 
-		dec := json.NewDecoder(rc)
 		if strings.HasPrefix(f.Name, "locations") {
-			locations := &LocationContainer{}
-			err := dec.Decode(locations)
+			locations := &entities.LocationContainer{}
+			err := easyjson.UnmarshalFromReader(rc, locations)
 			if err != nil {
 				log.Fatal(err)
 			}
 			DataContainer.LoadLocations(locations.Locations)
 			log.Println("loaded locations", len(locations.Locations))
 		} else if strings.HasPrefix(f.Name, "users") {
-			users := &UserContainer{}
-			err := dec.Decode(users)
+			users := &entities.UserContainer{}
+			err := easyjson.UnmarshalFromReader(rc, users)
 			if err != nil {
 				log.Fatal(err)
 			}
 			DataContainer.LoadUsers(users.Users)
 			log.Println("loaded users", len(users.Users))
 		} else if strings.HasPrefix(f.Name, "visits") {
-			visits := &VisitContainer{}
-			err := dec.Decode(visits)
+			visits := &entities.VisitContainer{}
+			err := easyjson.UnmarshalFromReader(rc, visits)
 			if err != nil {
 				log.Fatal(err)
 			}

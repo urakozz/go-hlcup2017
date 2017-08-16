@@ -5,6 +5,20 @@ import (
 	"time"
 )
 
+type ShortVisitContainer struct {
+	Visits []*ShortVisit `json:"visits"`
+}
+type VisitContainer struct {
+	Visits []*Visit `json:"visits"`
+}
+type UserContainer struct {
+	Users []*User `json:"users"`
+}
+type LocationContainer struct {
+	Locations []*Location `json:"locations"`
+}
+
+
 // Location
 //{
 //"distance": 9,

@@ -36,11 +36,11 @@ type Opts struct {
 func NewStorage(o Opts) *Container {
 	return &Container{
 		Opts:             o,
-		userStorage:      make([]*entities.User, 100000),
-		locationStorage:  make([]*entities.Location, 100000),
-		visitStorage:     make([]*entities.Visit, 100000),
-		userToVisits:     make([][]int64, 100000),
-		locationToVisits: make([][]int64, 100000),
+		userStorage:      make([]*entities.User, 500000),
+		locationStorage:  make([]*entities.Location, 500000),
+		visitStorage:     make([]*entities.Visit, 500000),
+		userToVisits:     make([][]int64, 500000),
+		locationToVisits: make([][]int64, 500000),
 	}
 }
 
@@ -326,9 +326,9 @@ func (l shortVisitList) Swap(i, j int) {
 	l[i], l[j] = l[j], l[i]
 }
 
-func (c *Container) GetUserVisitsFiltered(ID int64, opts GetUserVisitsOpts) (res []*entities.ShortVisit) {
-	var list shortVisitList
-	for _, v := range c.GetUserVisits(ID) {
+func (c *Container) GetUserVisitsFiltered(ID int64, opts GetUserVisitsOpts) *entities.ShortVisitContainer {
+	list := shortVisitList{}
+	for _, v := range c.getUserVisits(ID) {
 		if opts.FromDate != nil && *v.VisitedAt <= *opts.FromDate {
 			continue
 		}
@@ -349,10 +349,10 @@ func (c *Container) GetUserVisitsFiltered(ID int64, opts GetUserVisitsOpts) (res
 		list = append(list, sv)
 	}
 	sort.Sort(list)
-	return []*entities.ShortVisit(list)
+	return &entities.ShortVisitContainer{Visits: []*entities.ShortVisit(list)}
 }
 
-func (c *Container) GetUserVisits(ID int64) (res []*entities.Visit) {
+func (c *Container) getUserVisits(ID int64) (res []*entities.Visit) {
 	c.RLock()
 	defer c.RUnlock()
 	if ID >= int64(len(c.userToVisits)) {
@@ -375,8 +375,10 @@ type GetLocationVisitsOpts struct {
 	Gender   *string
 }
 
-func (c *Container) GetLocationVisitsFiltered(ID int64, opts GetLocationVisitsOpts) (res []*entities.Visit) {
-	for _, v := range c.GetLocationVisits(ID) {
+func (c *Container) GetLocationVisitsFilteredAvg(ID int64, opts GetLocationVisitsOpts) float64 {
+	var sum int64
+	var i int64
+	for _, v := range c.getLocationVisits(ID) {
 		//j, _ := json.Marshal(v)
 		//log.Println(string(j))
 		if opts.FromDate != nil && *v.VisitedAt <= *opts.FromDate {
@@ -396,13 +398,16 @@ func (c *Container) GetLocationVisitsFiltered(ID int64, opts GetLocationVisitsOp
 		if opts.Gender != nil && *v.User.Gender != *opts.Gender {
 			continue
 		}
-
-		res = append(res, v)
+		sum += int64(*v.Mark)
+		i++
 	}
-	return
+	if i == 0 {
+		return 0
+	}
+	return float64(sum) / float64(i)
 }
 
-func (c *Container) GetLocationVisits(ID int64) (res []*entities.Visit) {
+func (c *Container) getLocationVisits(ID int64) (res []*entities.Visit) {
 	c.RLock()
 	defer c.RUnlock()
 	if ID >= int64(len(c.locationToVisits)) {

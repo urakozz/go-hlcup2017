@@ -1,6 +1,10 @@
-hash: 6ca1fba28cf97757f0afc62502387556ef137fd464b8d1811f11725e611c2978
-updated: 2017-08-13T15:56:41.285786975+02:00
+hash: 083419cbc15961e36fcb55e9747bafccab95a6a7a7a1ac81c4cfcab0660d11de
+updated: 2017-08-16T15:20:07.342153505+02:00
 imports:
 - name: github.com/go-chi/chi
   version: 25354a53cca531cb2efd3f1d3c565d90ff04d802
+  subpackages:
+  - middleware
+- name: github.com/mailru/easyjson
+  version: 2f5df55504ebc322e4d52d34df6a1f5b503bf26d
 testImports: []
