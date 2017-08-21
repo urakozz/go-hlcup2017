@@ -1,10 +1,30 @@
-hash: 083419cbc15961e36fcb55e9747bafccab95a6a7a7a1ac81c4cfcab0660d11de
-updated: 2017-08-16T15:20:07.342153505+02:00
+hash: 85436e1bb6f08cb5ee409f1dc46616232ab32504aae20bb8c793780570ce9e81
+updated: 2017-08-21T11:08:26.626149899+02:00
 imports:
+- name: github.com/ant0ine/go-json-rest
+  version: 731ccde05312e2c1f5578a504ea8e77d38020340
+  subpackages:
+  - rest
+- name: github.com/buaazp/fasthttprouter
+  version: ade4e2031af3aed7fffd241084aad80a58faf421
 - name: github.com/go-chi/chi
   version: 25354a53cca531cb2efd3f1d3c565d90ff04d802
+- name: github.com/klauspost/compress
+  version: f3dce52e0576655d55fd69e74b63da96ad1108f3
   subpackages:
-  - middleware
+  - flate
+  - gzip
+  - zlib
+- name: github.com/klauspost/cpuid
+  version: ae7887de9fa5d2db4eaa8174a7eff2c1ac00f2da
 - name: github.com/mailru/easyjson
   version: 2f5df55504ebc322e4d52d34df6a1f5b503bf26d
+  subpackages:
+  - buffer
+  - jlexer
+  - jwriter
+- name: github.com/valyala/fasthttp
+  version: d42167fd04f636e20b005e9934159e95454233c7
+  subpackages:
+  - fasthttputil
 testImports: []

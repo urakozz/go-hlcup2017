@@ -7,12 +7,14 @@ import (
 	"sync"
 	"time"
 
-	"../entities"
+	"github.com/urakozz/highloadcamp/entities"
 )
 
 type Container struct {
 	sync.RWMutex
 	Opts
+
+	now time.Time
 
 	userStorage []*entities.User
 	//userMaxId   int64
@@ -36,6 +38,7 @@ type Opts struct {
 func NewStorage(o Opts) *Container {
 	return &Container{
 		Opts:             o,
+		now:              time.Now(),
 		userStorage:      make([]*entities.User, 500000),
 		locationStorage:  make([]*entities.Location, 500000),
 		visitStorage:     make([]*entities.Visit, 500000),
@@ -43,7 +46,9 @@ func NewStorage(o Opts) *Container {
 		locationToVisits: make([][]int64, 500000),
 	}
 }
-
+func (c *Container) SetNow(t time.Time) {
+	c.now = t
+}
 func (c *Container) ProcessLoad() {
 	c.Lock()
 	for _, visit := range c.visitStorage {
@@ -305,7 +310,7 @@ func (c *Container) UpdateVisit(u *entities.Visit) error {
 		c.userToVisits[diff.UserID.New] = append(c.userToVisits[diff.UserID.New], u.ID)
 	}
 	// process Location Change
-	log.Println("start updating location", u.ID, diff.LocationID.Old, diff.LocationID.New)
+	//log.Println("start updating location", u.ID, diff.LocationID.Old, diff.LocationID.New)
 	if diff.LocationID.HasDiff && diff.LocationID.Old != diff.LocationID.New {
 		if tmp := c.locationToVisits[diff.LocationID.Old]; len(tmp) != 0 {
 			var updatedOld []int64
@@ -414,6 +419,24 @@ type GetLocationVisitsOpts struct {
 func (c *Container) GetLocationVisitsFilteredAvg(ID int64, opts GetLocationVisitsOpts) float64 {
 	var sum int64
 	var i int64
+	fromBdTs := time.Date(1800, c.now.Month(), c.now.Day(), 0, 0, 0, 0, time.UTC).Unix()
+	toBdTs := c.now.Unix()
+	if opts.FromAge != nil {
+		toBdTs = time.Date(c.now.Year()-int(*opts.FromAge), c.now.Month(), c.now.Day(), c.now.Hour(), c.now.Minute(), c.now.Second(), 0, time.UTC).Unix()
+	}
+	if opts.ToAge != nil {
+		fromBdTs = time.Date(c.now.Year()-int(*opts.ToAge), c.now.Month(), c.now.Day(), c.now.Hour(), c.now.Minute(), c.now.Second(), 0, time.UTC).Unix()
+	}
+	var fromAge int64
+	var toAge int64 = 200
+	if opts.FromAge != nil {
+		fromAge = *opts.FromAge
+	}
+	if opts.ToAge != nil {
+		toAge = *opts.ToAge
+	}
+	_, _ = fromAge, toAge
+	//log.Println("from", time.Unix(fromBdTs, 0) ,"to",time.Unix(toBdTs, 0))
 	for _, v := range c.getLocationVisits(ID) {
 		//j, _ := json.Marshal(v)
 		//log.Println(string(j))
@@ -423,19 +446,17 @@ func (c *Container) GetLocationVisitsFilteredAvg(ID int64, opts GetLocationVisit
 		if opts.ToDate != nil && *v.VisitedAt >= *opts.ToDate {
 			continue
 		}
-		//age := yearDiff(time.Unix(int64(*v.User.Birthdate), 0), time.Now())
-		age := int64(time.Since(time.Unix(int64(*v.User.Birthdate), 0)).Hours() / 24 / 365)
-		if opts.FromAge != nil && age <= *opts.FromAge {
-			continue
-		}
-		if opts.ToAge != nil && age >= *opts.ToAge {
-			continue
-		}
 		if opts.Gender != nil && *v.User.Gender != *opts.Gender {
 			continue
 		}
-		sum += int64(*v.Mark)
-		i++
+		age := getAge(time.Unix(int64(*v.User.Birthdate), 0), c.now)
+		_ = age
+		//age = int64(time.Since(time.Unix(int64(*v.User.Birthdate), 0)).Hours() / 24 / 365)
+		//if fromAge < age && age < toAge {
+		if fromBdTs < int64(*v.User.Birthdate) && int64(*v.User.Birthdate) < toBdTs {
+			sum += int64(*v.Mark)
+			i++
+		}
 	}
 	if i == 0 {
 		return 0
@@ -458,49 +479,12 @@ func (c *Container) getLocationVisits(ID int64) (res []*entities.Visit) {
 	return nil
 }
 
-func yearDiff(a, b time.Time) int64 {
-	if a.Location() != b.Location() {
-		b = b.In(a.Location())
+func getAge(bday, now time.Time) int64 {
+	rawYears := int64(now.Year() - bday.Year())
+	if now.Month() < bday.Month() {
+		rawYears--
+	} else if now.Month() == bday.Month() && now.Day() < bday.Day() {
+		rawYears--
 	}
-	if a.After(b) {
-		a, b = b, a
-	}
-	y1, M1, d1 := a.Date()
-	y2, M2, d2 := b.Date()
-
-	h1, m1, s1 := a.Clock()
-	h2, m2, s2 := b.Clock()
-
-	year := int(y2 - y1)
-	month := int(M2 - M1)
-	day := int(d2 - d1)
-	hour := int(h2 - h1)
-	min := int(m2 - m1)
-	sec := int(s2 - s1)
-
-	// Normalize negative values
-	if sec < 0 {
-		sec += 60
-		min--
-	}
-	if min < 0 {
-		min += 60
-		hour--
-	}
-	if hour < 0 {
-		hour += 24
-		day--
-	}
-	if day < 0 {
-		// days in month:
-		t := time.Date(y1, M1, 32, 0, 0, 0, 0, time.UTC)
-		day += 32 - t.Day()
-		month--
-	}
-	if month < 0 {
-		month += 12
-		year--
-	}
-
-	return int64(year)
+	return rawYears
 }

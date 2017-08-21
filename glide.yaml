@@ -3,3 +3,8 @@ import:
 - package: github.com/go-chi/chi
   version: ^3.1.5
 - package: github.com/mailru/easyjson
+- package: github.com/valyala/fasthttp
+  version: v20160617
+- package: github.com/buaazp/fasthttprouter
+  version: v0.1.1
+- package: github.com/ant0ine/go-json-rest/rest
