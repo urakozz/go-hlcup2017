@@ -389,6 +389,8 @@ func (c *Container) GetUserVisitsFiltered(ID int64, opts GetUserVisitsOpts) *ent
 		}
 		list = append(list, sv)
 	}
+	// TODO use shortVisit pool
+	// TODO save presorted list
 	sort.Sort(list)
 	return &entities.ShortVisitContainer{Visits: []*entities.ShortVisit(list)}
 }

@@ -1,7 +1,7 @@
 FROM alpine:latest
-COPY ./highloadcamp /highloadcamp
-COPY ./tmp /tmp
-RUN /highloadcamp --validate
+#COPY ./tmp /tmp
 EXPOSE 3000 80
+COPY ./highloadcamp /highloadcamp
+RUN /highloadcamp --validate
 ENTRYPOINT ["/highloadcamp"]
 CMD ["--port=80"]

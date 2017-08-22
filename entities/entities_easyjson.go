@@ -69,9 +69,23 @@ func easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities(out *jwriter.Wri
 	out.RawByte('}')
 }
 
+// MarshalJSON supports json.Marshaler interface
+func (v VisitDiff) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v VisitDiff) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *VisitDiff) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson3e8ab7adDecodeGithubComUrakozzHighloadcampEntities(&r, v)
+	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
@@ -233,9 +247,23 @@ func easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities1(out *jwriter.Wr
 	out.RawByte('}')
 }
 
+// MarshalJSON supports json.Marshaler interface
+func (v VisitContainer) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities1(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v VisitContainer) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities1(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *VisitContainer) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson3e8ab7adDecodeGithubComUrakozzHighloadcampEntities1(&r, v)
+	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
@@ -366,9 +394,23 @@ func easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities2(out *jwriter.Wr
 	out.RawByte('}')
 }
 
+// MarshalJSON supports json.Marshaler interface
+func (v Visit) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities2(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v Visit) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities2(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *Visit) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson3e8ab7adDecodeGithubComUrakozzHighloadcampEntities2(&r, v)
+	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
@@ -463,9 +505,23 @@ func easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities3(out *jwriter.Wr
 	out.RawByte('}')
 }
 
+// MarshalJSON supports json.Marshaler interface
+func (v UserContainer) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities3(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v UserContainer) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities3(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *UserContainer) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson3e8ab7adDecodeGithubComUrakozzHighloadcampEntities3(&r, v)
+	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
@@ -618,9 +674,23 @@ func easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities4(out *jwriter.Wr
 	out.RawByte('}')
 }
 
+// MarshalJSON supports json.Marshaler interface
+func (v User) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities4(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v User) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities4(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *User) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson3e8ab7adDecodeGithubComUrakozzHighloadcampEntities4(&r, v)
+	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
@@ -715,9 +785,23 @@ func easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities5(out *jwriter.Wr
 	out.RawByte('}')
 }
 
+// MarshalJSON supports json.Marshaler interface
+func (v ShortVisitContainer) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities5(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v ShortVisitContainer) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities5(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *ShortVisitContainer) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson3e8ab7adDecodeGithubComUrakozzHighloadcampEntities5(&r, v)
+	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
@@ -784,9 +868,23 @@ func easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities6(out *jwriter.Wr
 	out.RawByte('}')
 }
 
+// MarshalJSON supports json.Marshaler interface
+func (v ShortVisit) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities6(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v ShortVisit) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities6(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *ShortVisit) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson3e8ab7adDecodeGithubComUrakozzHighloadcampEntities6(&r, v)
+	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
@@ -881,9 +979,23 @@ func easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities7(out *jwriter.Wr
 	out.RawByte('}')
 }
 
+// MarshalJSON supports json.Marshaler interface
+func (v LocationContainer) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities7(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v LocationContainer) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities7(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *LocationContainer) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson3e8ab7adDecodeGithubComUrakozzHighloadcampEntities7(&r, v)
+	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
@@ -1014,9 +1126,23 @@ func easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities8(out *jwriter.Wr
 	out.RawByte('}')
 }
 
+// MarshalJSON supports json.Marshaler interface
+func (v Location) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities8(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v Location) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities8(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *Location) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson3e8ab7adDecodeGithubComUrakozzHighloadcampEntities8(&r, v)
+	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface

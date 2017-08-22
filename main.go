@@ -613,6 +613,7 @@ func getUserVisits(w rest.ResponseWriter, r *rest.Request) {
 	//	w.Write([]byte(`{"visits":[]}`))
 	//	return
 	//}
+	w.Header().Set("Transfer-Encoding", "identity")
 	w.WriteJson(visits)
 }
 func getUserVisitsFast(ctx *fasthttp.RequestCtx) {

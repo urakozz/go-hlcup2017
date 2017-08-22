@@ -218,6 +218,11 @@ type ShortVisit struct {
 	VisitedAt int64  `json:"visited_at"`
 	Place     string `json:"place"`
 }
+func(sv *ShortVisit) Reset() {
+	sv.Mark = 0
+	sv.VisitedAt = 0
+	sv.Place = ""
+}
 
 //func (v *ShortVisit) MarshalJSON() (b []byte, err error) {
 //	//"mark": 3,
