@@ -1,7 +1,5 @@
 package: .
 import:
-- package: github.com/go-chi/chi
-  version: ^3.1.5
 - package: github.com/mailru/easyjson
 - package: github.com/valyala/fasthttp
   version: 52a0993b96f032dea57fa93081d7c0a1aa906430

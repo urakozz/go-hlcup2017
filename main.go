@@ -17,7 +17,7 @@ import (
 	"github.com/urakozz/highloadcamp/entities"
 	"github.com/urakozz/highloadcamp/storage"
 	"github.com/buaazp/fasthttprouter"
-	"github.com/go-chi/chi"
+
 	"github.com/mailru/easyjson"
 	"github.com/valyala/fasthttp"
 	"github.com/ant0ine/go-json-rest/rest"
@@ -37,7 +37,7 @@ func (mw *TimerMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFunc {
 		h(w, r)
 
 		t := time.Since(start)
-		if t > 100*time.Microsecond {
+		if t > 500*time.Microsecond {
 			log.Println(r.Method, r.URL.Path, t)
 		}
 	}
@@ -73,7 +73,6 @@ func main() {
 
 	router := fasthttprouter.New()
 	router.POST("/users/:id", func(ctx *fasthttp.RequestCtx) {
-		//ctx.NotFound()
 		t := time.Now()
 		log.Println("start user post", time.Since(t))
 		if v, ok := ctx.UserValue("id").(string); ok && v == "new" {
@@ -91,28 +90,26 @@ func main() {
 	router.GET("/locations/:id", getLocationFast)
 	router.GET("/locations/:id/avg", getLocationAvgFast)
 	router.POST("/locations/:id", func(ctx *fasthttp.RequestCtx) {
-		ctx.NotFound()
-		//t := time.Now()
-		//if v, ok := ctx.UserValue("id").(string); ok && v == "new" {
-		//	log.Println(ctx.UserValue("id"), "new>>")
-		//	newLocationFast(ctx)
-		//} else {
-		//	updateLocationFast(ctx)
-		//}
-		//log.Println("finish location", time.Since(t))
+		t := time.Now()
+		if v, ok := ctx.UserValue("id").(string); ok && v == "new" {
+			log.Println(ctx.UserValue("id"), "new>>")
+			newLocationFast(ctx)
+		} else {
+			updateLocationFast(ctx)
+		}
+		log.Println("finish location", time.Since(t))
 	})
 
 	router.GET("/visits/:id", getVisitFast)
 	router.POST("/visits/:id", func(ctx *fasthttp.RequestCtx) {
-		ctx.NotFound()
-		//t := time.Now()
-		//if v, ok := ctx.UserValue("id").(string); ok && v == "new" {
-		//	log.Println(ctx.UserValue("id"), "new>>")
-		//	newVisitFast(ctx)
-		//} else {
-		//	updateVisitFast(ctx)
-		//}
-		//log.Println("finish location", time.Since(t))
+		t := time.Now()
+		if v, ok := ctx.UserValue("id").(string); ok && v == "new" {
+			log.Println(ctx.UserValue("id"), "new>>")
+			newVisitFast(ctx)
+		} else {
+			updateVisitFast(ctx)
+		}
+		log.Println("finish location", time.Since(t))
 	})
 
 	api := rest.NewApi()
@@ -140,12 +137,12 @@ func main() {
 	lport := fmt.Sprintf(":%d", *port)
 
 	log.Println("start", lport)
-	//if err := fasthttp.ListenAndServe(lport, router.Handler); err != nil {
-	//	log.Fatalf("Error in ListenAndServe: %s", err)
-	//}
-	if err := http.ListenAndServe(lport, api.MakeHandler()); err != nil {
-		log.Fatal(err)
+	if err := fasthttp.ListenAndServe(lport, router.Handler); err != nil {
+		log.Fatalf("Error in ListenAndServe: %s", err)
 	}
+	//if err := http.ListenAndServe(lport, api.MakeHandler()); err != nil {
+	//	log.Fatal(err)
+	//}
 }
 
 // Done
@@ -285,7 +282,7 @@ func updateUserFast(ctx *fasthttp.RequestCtx) {
 	json.Unmarshal(b, &tmp)
 	for _, v := range tmp {
 		if v == nil {
-			ctx.Error("", http.StatusNotFound)
+			ctx.Error("", http.StatusBadRequest)
 			return
 		}
 	}
@@ -853,9 +850,9 @@ func Unzip() {
 	DataContainer.WarmUp()
 }
 
-func getId(r *http.Request) (int, error) {
-	return strconv.Atoi(chi.URLParam(r, "id"))
-}
+//func getId(r *http.Request) (int, error) {
+//	return strconv.Atoi(chi.URLParam(r, "id"))
+//}
 func getRest(r *rest.Request) (int, error) {
 	return strconv.Atoi(r.PathParam("id"))
 }

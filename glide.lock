@@ -1,5 +1,5 @@
-hash: 2c2fe519537829710b0f6ab606f171f6f0bcbfb3130a263c26d91761999b70c8
-updated: 2017-08-22T16:11:21.999340534+02:00
+hash: b179a945cf1421d823455babc1e131691265279cdee0490188345bc96bcfe023
+updated: 2017-08-23T11:53:37.634312579+02:00
 imports:
 - name: github.com/ant0ine/go-json-rest
   version: 731ccde05312e2c1f5578a504ea8e77d38020340
@@ -8,8 +8,6 @@ imports:
   - rest/trie
 - name: github.com/buaazp/fasthttprouter
   version: ade4e2031af3aed7fffd241084aad80a58faf421
-- name: github.com/go-chi/chi
-  version: 25354a53cca531cb2efd3f1d3c565d90ff04d802
 - name: github.com/klauspost/compress
   version: f3dce52e0576655d55fd69e74b63da96ad1108f3
   subpackages:
