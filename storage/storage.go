@@ -114,8 +114,6 @@ func (c *Container) NewUser(u *entities.User) {
 	//u.ID = id
 	c.Lock()
 	c.growUser(u.ID)
-	c.growUserToVisits(u.ID)
-	c.growLocationToVisits(u.ID)
 	c.userStorage[u.ID] = u
 	c.Unlock()
 }
@@ -139,16 +137,17 @@ func (c *Container) growUser(n int64) {
 		copy(tmp, c.userStorage)
 		c.userStorage = tmp
 	}
+	c.growUserToVisits(n)
+	c.growLocationToVisits(n)
 }
 
 func (c *Container) LoadUsers(vs []*entities.User) {
 	c.Lock()
 	for _, v := range vs {
 		c.growUser(v.ID)
-		c.growUserToVisits(v.ID)
-		c.growLocationToVisits(v.ID)
 		c.userStorage[v.ID] = v
 	}
+	c.growUser(int64(len(c.userStorage)*3/2))
 	c.Unlock()
 }
 
@@ -165,8 +164,8 @@ func (c *Container) UpdateUser(u *entities.User) error {
 	return ErrNotFound
 }
 func (c *Container) GetUser(ID int64) (*entities.User, error) {
-	c.RLock()
-	defer c.RUnlock()
+	//c.RLock()
+	//defer c.RUnlock()
 	if ID >= int64(len(c.userStorage)) {
 		return nil, ErrNotFound
 	}
@@ -200,6 +199,7 @@ func (c *Container) LoadLocations(vs []*entities.Location) {
 		c.growLocation(int64(v.ID))
 		c.locationStorage[v.ID] = v
 	}
+	c.growLocation(int64(len(c.locationStorage)*3/2))
 	c.Unlock()
 }
 
@@ -216,8 +216,8 @@ func (c *Container) UpdateLocation(u *entities.Location) error {
 	return ErrNotFound
 }
 func (c *Container) GetLocation(ID int64) (*entities.Location, error) {
-	c.RLock()
-	defer c.RUnlock()
+	//c.RLock()
+	//defer c.RUnlock()
 	if ID >= int64(len(c.locationStorage)) {
 		return nil, ErrNotFound
 	}
@@ -266,6 +266,7 @@ func (c *Container) LoadVisits(vs []*entities.Visit) {
 		c.growVisit(int64(v.ID))
 		c.visitStorage[v.ID] = v
 	}
+	c.growLocation(int64(len(c.visitStorage)*3/2))
 	c.Unlock()
 }
 
@@ -326,8 +327,8 @@ func (c *Container) UpdateVisit(u *entities.Visit) error {
 	return nil
 }
 func (c *Container) GetVisit(ID int64) (*entities.Visit, error) {
-	c.RLock()
-	defer c.RUnlock()
+	//c.RLock()
+	//defer c.RUnlock()
 	if ID >= int64(len(c.visitStorage)) {
 		return nil, ErrNotFound
 	}

@@ -1,10 +1,11 @@
-hash: 85436e1bb6f08cb5ee409f1dc46616232ab32504aae20bb8c793780570ce9e81
-updated: 2017-08-21T11:08:26.626149899+02:00
+hash: 2c2fe519537829710b0f6ab606f171f6f0bcbfb3130a263c26d91761999b70c8
+updated: 2017-08-22T16:11:21.999340534+02:00
 imports:
 - name: github.com/ant0ine/go-json-rest
   version: 731ccde05312e2c1f5578a504ea8e77d38020340
   subpackages:
   - rest
+  - rest/trie
 - name: github.com/buaazp/fasthttprouter
   version: ade4e2031af3aed7fffd241084aad80a58faf421
 - name: github.com/go-chi/chi
@@ -23,8 +24,11 @@ imports:
   - buffer
   - jlexer
   - jwriter
+- name: github.com/valyala/bytebufferpool
+  version: e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7
 - name: github.com/valyala/fasthttp
-  version: d42167fd04f636e20b005e9934159e95454233c7
+  version: 52a0993b96f032dea57fa93081d7c0a1aa906430
   subpackages:
   - fasthttputil
+  - stackless
 testImports: []

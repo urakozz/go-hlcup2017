@@ -26,7 +26,22 @@ import (
 
 var DataContainer = storage.NewStorage(storage.Opts{})
 var emptyResp = []byte("{}")
+type TimerMiddleware struct{}
 
+// MiddlewareFunc makes TimerMiddleware implement the Middleware interface.
+func (mw *TimerMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFunc {
+	return func(w rest.ResponseWriter, r *rest.Request) {
+
+		start := time.Now()
+
+		h(w, r)
+
+		t := time.Since(start)
+		if t > 100*time.Microsecond {
+			log.Println(r.Method, r.URL.Path, t)
+		}
+	}
+}
 func main() {
 	var validate = flag.Bool("validate", false, "build validation")
 	var port = flag.Int("port", 3000, "app port")
@@ -58,16 +73,16 @@ func main() {
 
 	router := fasthttprouter.New()
 	router.POST("/users/:id", func(ctx *fasthttp.RequestCtx) {
-		ctx.NotFound()
-		//t := time.Now()
-		//log.Println("start user post", time.Since(t))
-		//if v, ok := ctx.UserValue("id").(string); ok && v == "new" {
-		//	log.Println(ctx.UserValue("id"), "new>>")
-		//	newUserFast(ctx)
-		//} else {
-		//	updateUserFast(ctx)
-		//}
-		//log.Println("finish user", time.Since(t))
+		//ctx.NotFound()
+		t := time.Now()
+		log.Println("start user post", time.Since(t))
+		if v, ok := ctx.UserValue("id").(string); ok && v == "new" {
+			log.Println(ctx.UserValue("id"), "new>>")
+			newUserFast(ctx)
+		} else {
+			updateUserFast(ctx)
+		}
+		log.Println("finish user", time.Since(t))
 	})
 	router.GET("/users/:id", getUserFast)
 	router.GET("/users/:id/visits", getUserVisitsFast)
@@ -101,6 +116,7 @@ func main() {
 	})
 
 	api := rest.NewApi()
+	api.Use(&TimerMiddleware{})
 	restRouter, err := rest.MakeRouter(
 		rest.Post("/users/new", newUser),
 		rest.Post("/users/#id", updateUser),
@@ -135,7 +151,6 @@ func main() {
 // Done
 func getUser(w rest.ResponseWriter, r *rest.Request) {
 	id, err := getRest(r)
-	log.Println("getUser", "id", id)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -165,7 +180,6 @@ func getUserFast(ctx *fasthttp.RequestCtx) {
 // Done
 func getLocation(w rest.ResponseWriter, r *rest.Request) {
 	id, err := getRest(r)
-	log.Println("getUser", "id", id)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -201,7 +215,6 @@ func listVisit(w http.ResponseWriter, r *http.Request) {
 // Done
 func getVisit(w rest.ResponseWriter, r *rest.Request) {
 	id, err := getRest(r)
-	log.Println("getVisit", "id", id)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -232,7 +245,6 @@ func getVisitFast(ctx *fasthttp.RequestCtx) {
 // Done
 func updateUser(w rest.ResponseWriter, r *rest.Request) {
 	id, err := getRest(r)
-	log.Println("updateUser", "id", id)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -297,7 +309,6 @@ func updateUserFast(ctx *fasthttp.RequestCtx) {
 // Done
 func updateLocation(w rest.ResponseWriter, r *rest.Request) {
 	id, err := getRest(r)
-	log.Println("updateLocation", "id", id)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -436,7 +447,6 @@ func updateVisitFast(ctx *fasthttp.RequestCtx) {
 
 // NEW
 func newUser(w rest.ResponseWriter, r *rest.Request) {
-	log.Println("newUser")
 	u := &entities.User{}
 
 	err := easyjson.UnmarshalFromReader(r.Body, u)
@@ -477,7 +487,6 @@ func newUserFast(ctx *fasthttp.RequestCtx) {
 	ctx.Success("application/json", emptyResp)
 }
 func newLocation(w rest.ResponseWriter, r *rest.Request) {
-	log.Println("newLocation")
 	u := &entities.Location{}
 	err := easyjson.UnmarshalFromReader(r.Body, u)
 	if err != nil {
@@ -516,7 +525,6 @@ func newLocationFast(ctx *fasthttp.RequestCtx) {
 	ctx.Success("application/json", emptyResp)
 }
 func newVisit(w rest.ResponseWriter, r *rest.Request) {
-	log.Println("newVisit")
 	u := &entities.Visit{}
 	err := easyjson.UnmarshalFromReader(r.Body, u)
 	if err != nil {
@@ -609,10 +617,6 @@ func getUserVisits(w rest.ResponseWriter, r *rest.Request) {
 
 	visits := DataContainer.GetUserVisitsFiltered(int64(id), opts)
 
-	//if len(visits.Visits) == 0 {
-	//	w.Write([]byte(`{"visits":[]}`))
-	//	return
-	//}
 	w.Header().Set("Transfer-Encoding", "identity")
 	w.WriteJson(visits)
 }
@@ -660,10 +664,6 @@ func getUserVisitsFast(ctx *fasthttp.RequestCtx) {
 
 	visits := DataContainer.GetUserVisitsFiltered(id, opts)
 
-	//if len(visits.Visits) == 0 {
-	//	w.Write([]byte(`{"visits":[]}`))
-	//	return
-	//}
 	easyjson.MarshalToWriter(visits, ctx)
 }
 func getLocationAvg(w rest.ResponseWriter, r *rest.Request) {
