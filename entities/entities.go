@@ -35,6 +35,12 @@ type Location struct {
 	Country  *string `json:"country"`
 }
 
+func (l *Location) Reset() {
+	l.ID = 0
+	l.Distance, l.City = nil, nil
+	l.Place, l.Country = nil, nil
+}
+
 //func (u *Location) Clone() *Location {
 //	v := &Location{}
 //	*v = *u
@@ -102,6 +108,13 @@ type User struct {
 	LastName  *string `json:"last_name"`
 	Gender    *string `json:"gender"`
 	Birthdate *int64  `json:"birth_date,omitempty"`
+}
+
+func (u *User) Reset() {
+	u.ID = 0
+	u.Email, u.FirstName = nil, nil
+	u.LastName, u.Gender = nil, nil
+	u.Birthdate = nil
 }
 
 //func (u *User) Clone() *User {
@@ -178,6 +191,13 @@ type Visit struct {
 	Mark       *uint8    `json:"mark"`
 	User       *User     `json:"-"`
 	Location   *Location `json:"-"`
+}
+
+func (v *Visit) Reset() {
+	v.ID = 0
+	v.LocationID, v.UserID = nil, nil
+	v.VisitedAt, v.Mark = nil, nil
+	v.User, v.Location = nil, nil
 }
 
 //func (u *Visit) Clone() *Visit {

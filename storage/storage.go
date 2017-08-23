@@ -383,14 +383,13 @@ func (c *Container) GetUserVisitsFiltered(ID int64, opts GetUserVisitsOpts) *ent
 		if opts.ToDistance != nil && *v.Location.Distance >= *opts.ToDistance {
 			continue
 		}
-		sv := &entities.ShortVisit{
-			Mark:      *v.Mark,
-			Place:     *v.Location.Place,
-			VisitedAt: *v.VisitedAt,
-		}
+		sv := entities.DefaultShortVisitPool.Get()
+		sv.Mark = *v.Mark
+		sv.Place = *v.Location.Place
+		sv.VisitedAt = *v.VisitedAt
+
 		list = append(list, sv)
 	}
-	// TODO use shortVisit pool
 	// TODO save presorted list
 	sort.Sort(list)
 	return &entities.ShortVisitContainer{Visits: []*entities.ShortVisit(list)}

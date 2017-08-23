@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -14,18 +15,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/buaazp/fasthttprouter"
+	"github.com/mailru/easyjson"
 	"github.com/urakozz/highloadcamp/entities"
 	"github.com/urakozz/highloadcamp/storage"
-	"github.com/buaazp/fasthttprouter"
-
-	"github.com/mailru/easyjson"
+	"github.com/valyala/bytebufferpool"
 	"github.com/valyala/fasthttp"
-	"github.com/ant0ine/go-json-rest/rest"
-	"io"
 )
 
 var DataContainer = storage.NewStorage(storage.Opts{})
 var emptyResp = []byte("{}")
+
 type TimerMiddleware struct{}
 
 // MiddlewareFunc makes TimerMiddleware implement the Middleware interface.
@@ -85,7 +86,6 @@ func main() {
 	})
 	router.GET("/users/:id", getUserFast)
 	router.GET("/users/:id/visits", getUserVisitsFast)
-
 
 	router.GET("/locations/:id", getLocationFast)
 	router.GET("/locations/:id/avg", getLocationAvgFast)
@@ -277,17 +277,21 @@ func updateUserFast(ctx *fasthttp.RequestCtx) {
 		ctx.Error("", http.StatusNotFound)
 		return
 	}
-	b := ctx.PostBody()
+
+	bb := bytebufferpool.Get()
+	bb.Write(ctx.PostBody())
+	defer bytebufferpool.Put(bb)
+
 	var tmp map[string]interface{}
-	json.Unmarshal(b, &tmp)
+	json.Unmarshal(bb.Bytes(), &tmp)
 	for _, v := range tmp {
 		if v == nil {
 			ctx.Error("", http.StatusBadRequest)
 			return
 		}
 	}
-	u := &entities.User{}
-	err = easyjson.Unmarshal(b, u)
+	u := entities.DefaultUserPool.Get()
+	err = easyjson.Unmarshal(bb.Bytes(), u)
 	if err != nil {
 		ctx.Error("", http.StatusBadRequest)
 		return
@@ -296,6 +300,7 @@ func updateUserFast(ctx *fasthttp.RequestCtx) {
 	u.ID = id
 
 	err = DataContainer.UpdateUser(u)
+	entities.DefaultUserPool.Put(u)
 	if err != nil {
 		ctx.Error("", http.StatusNotFound)
 		return
@@ -341,17 +346,20 @@ func updateLocationFast(ctx *fasthttp.RequestCtx) {
 		ctx.NotFound()
 		return
 	}
-	b := ctx.PostBody()
+	bb := bytebufferpool.Get()
+	bb.Write(ctx.PostBody())
+	defer bytebufferpool.Put(bb)
+
 	var tmp map[string]interface{}
-	json.Unmarshal(b, &tmp)
+	json.Unmarshal(bb.Bytes(), &tmp)
 	for _, v := range tmp {
 		if v == nil {
 			ctx.Error("", http.StatusBadRequest)
 			return
 		}
 	}
-	u := &entities.Location{}
-	err = easyjson.Unmarshal(b, u)
+	u := entities.DefaultLocationPool.Get()
+	err = easyjson.Unmarshal(bb.Bytes(), u)
 	if err != nil {
 		ctx.Error("", http.StatusBadRequest)
 		return
@@ -359,6 +367,7 @@ func updateLocationFast(ctx *fasthttp.RequestCtx) {
 	u.ID = id
 
 	err = DataContainer.UpdateLocation(u)
+	entities.DefaultLocationPool.Put(u)
 	if err != nil {
 		ctx.NotFound()
 		return
@@ -412,17 +421,20 @@ func updateVisitFast(ctx *fasthttp.RequestCtx) {
 		ctx.NotFound()
 		return
 	}
-	b := ctx.PostBody()
+	bb := bytebufferpool.Get()
+	bb.Write(ctx.PostBody())
+	defer bytebufferpool.Put(bb)
+
 	var tmp map[string]interface{}
-	json.NewDecoder(bytes.NewReader(b)).Decode(&tmp)
+	json.Unmarshal(bb.Bytes(), &tmp)
 	for _, v := range tmp {
 		if v == nil {
 			ctx.Error("", http.StatusBadRequest)
 			return
 		}
 	}
-	u := &entities.Visit{}
-	err = easyjson.Unmarshal(b, u)
+	u := entities.DefaultVisitPool.Get()
+	err = easyjson.Unmarshal(bb.Bytes(), u)
 	if err != nil {
 		ctx.Error("", http.StatusBadRequest)
 		return
@@ -431,6 +443,7 @@ func updateVisitFast(ctx *fasthttp.RequestCtx) {
 	u.ID = id
 
 	err = DataContainer.UpdateVisit(u)
+	entities.DefaultVisitPool.Put(u)
 	if err == storage.ErrNotFound {
 		ctx.NotFound()
 		return
@@ -662,6 +675,11 @@ func getUserVisitsFast(ctx *fasthttp.RequestCtx) {
 	visits := DataContainer.GetUserVisitsFiltered(id, opts)
 
 	easyjson.MarshalToWriter(visits, ctx)
+	go func() {
+		for _, v := range visits.Visits {
+			entities.DefaultShortVisitPool.Put(v)
+		}
+	} ()
 }
 func getLocationAvg(w rest.ResponseWriter, r *rest.Request) {
 	id, err := getRest(r)
