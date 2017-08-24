@@ -22,6 +22,7 @@ import (
 	"github.com/urakozz/highloadcamp/storage"
 	"github.com/valyala/bytebufferpool"
 	"github.com/valyala/fasthttp"
+	"runtime"
 )
 
 var DataContainer = storage.NewStorage(storage.Opts{})
@@ -42,6 +43,18 @@ func (mw *TimerMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFunc {
 			log.Println(r.Method, r.URL.Path, t)
 		}
 	}
+}
+
+func WithKeepAlive(h fasthttp.RequestHandler) fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+		ctx.Response.Header.Set("Connection", "Keep-Alive")
+		ctx.Response.Header.Set("Server", "kozz")
+		ctx.Response.Header.Set("Content-Type", "application/json")
+		h(ctx)
+	}
+}
+func init() {
+	runtime.GOMAXPROCS(2)
 }
 func main() {
 	var validate = flag.Bool("validate", false, "build validation")
@@ -84,11 +97,11 @@ func main() {
 		}
 		log.Println("finish user", time.Since(t))
 	})
-	router.GET("/users/:id", getUserFast)
-	router.GET("/users/:id/visits", getUserVisitsFast)
+	router.GET("/users/:id", WithKeepAlive(getUserFast))
+	router.GET("/users/:id/visits", WithKeepAlive(getUserVisitsFast))
 
-	router.GET("/locations/:id", getLocationFast)
-	router.GET("/locations/:id/avg", getLocationAvgFast)
+	router.GET("/locations/:id", WithKeepAlive(getLocationFast))
+	router.GET("/locations/:id/avg", WithKeepAlive(getLocationAvgFast))
 	router.POST("/locations/:id", func(ctx *fasthttp.RequestCtx) {
 		t := time.Now()
 		if v, ok := ctx.UserValue("id").(string); ok && v == "new" {
@@ -100,7 +113,7 @@ func main() {
 		log.Println("finish location", time.Since(t))
 	})
 
-	router.GET("/visits/:id", getVisitFast)
+	router.GET("/visits/:id", WithKeepAlive(getVisitFast))
 	router.POST("/visits/:id", func(ctx *fasthttp.RequestCtx) {
 		t := time.Now()
 		if v, ok := ctx.UserValue("id").(string); ok && v == "new" {
@@ -822,10 +835,10 @@ func Unzip() {
 		}
 		DataContainer.SetNow(time.Now())
 
-		log.Println(f.Name)
 
 		rc, err := f.Open()
 		if err != nil {
+			log.Println(err.Error())
 			log.Fatal(err)
 			return
 		}
@@ -834,27 +847,34 @@ func Unzip() {
 			locations := &entities.LocationContainer{}
 			err := easyjson.UnmarshalFromReader(rc, locations)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err.Error())
+				//log.Fatal(err)
 			}
+			log.Println("decoded", f.Name)
 			DataContainer.LoadLocations(locations.Locations)
 			log.Println("loaded locations", len(locations.Locations))
 		} else if strings.HasPrefix(f.Name, "users") {
 			users := &entities.UserContainer{}
 			err := easyjson.UnmarshalFromReader(rc, users)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err.Error())
+				//log.Fatal(err)
 			}
+			log.Println("decoded", f.Name)
 			DataContainer.LoadUsers(users.Users)
 			log.Println("loaded users", len(users.Users))
 		} else if strings.HasPrefix(f.Name, "visits") {
 			visits := &entities.VisitContainer{}
 			err := easyjson.UnmarshalFromReader(rc, visits)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err.Error())
+				//log.Fatal(err)
 			}
+			log.Println("decoded", f.Name)
 			DataContainer.LoadVisits(visits.Visits)
 			log.Println("loaded visits", len(visits.Visits))
 		} else if f.Name == "options.txt" {
+			log.Println("options", f.Name)
 			b, _ := ioutil.ReadAll(rc)
 			lines := strings.Split(string(b), "\n")
 			log.Println(lines)

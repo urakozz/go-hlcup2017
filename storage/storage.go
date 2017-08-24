@@ -117,28 +117,23 @@ func (c *Container) NewUser(u *entities.User) {
 	c.userStorage[u.ID] = u
 	c.Unlock()
 }
-func (c *Container) growUserToVisits(n int64) {
-	if n >= int64(len(c.userToVisits)) {
-		tmp := make([][]int64, n*3/2)
-		copy(tmp, c.userToVisits)
-		c.userToVisits = tmp
-	}
-}
-func (c *Container) growLocationToVisits(n int64) {
-	if n >= int64(len(c.locationToVisits)) {
-		tmp := make([][]int64, n*3/2)
-		copy(tmp, c.locationToVisits)
-		c.locationToVisits = tmp
-	}
-}
 func (c *Container) growUser(n int64) {
+	newN := n*3/2
 	if n >= int64(len(c.userStorage)) {
-		tmp := make([]*entities.User, n*3/2)
+		tmp := make([]*entities.User, newN)
 		copy(tmp, c.userStorage)
 		c.userStorage = tmp
 	}
-	c.growUserToVisits(n)
-	c.growLocationToVisits(n)
+	if n >= int64(len(c.userToVisits)) {
+		tmp := make([][]int64, newN)
+		copy(tmp, c.userToVisits)
+		c.userToVisits = tmp
+	}
+	if n >= int64(len(c.locationToVisits)) {
+		tmp := make([][]int64, newN)
+		copy(tmp, c.locationToVisits)
+		c.locationToVisits = tmp
+	}
 }
 
 func (c *Container) LoadUsers(vs []*entities.User) {
@@ -199,7 +194,7 @@ func (c *Container) LoadLocations(vs []*entities.Location) {
 		c.growLocation(int64(v.ID))
 		c.locationStorage[v.ID] = v
 	}
-	c.growLocation(int64(len(c.locationStorage)*3/2))
+	//c.growLocation(int64(len(c.locationStorage)*3/2))
 	c.Unlock()
 }
 
