@@ -30,6 +30,8 @@ var emptyResp = []byte("{}")
 
 type TimerMiddleware struct{}
 
+var version string
+
 // MiddlewareFunc makes TimerMiddleware implement the Middleware interface.
 func (mw *TimerMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFunc {
 	return func(w rest.ResponseWriter, r *rest.Request) {
@@ -57,6 +59,7 @@ func init() {
 	runtime.GOMAXPROCS(2)
 }
 func main() {
+	fmt.Println("Version", version)
 	var validate = flag.Bool("validate", false, "build validation")
 	var port = flag.Int("port", 3000, "app port")
 	flag.Parse()
