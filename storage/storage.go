@@ -16,17 +16,17 @@ type Container struct {
 
 	now time.Time
 
-	userStorage []*entities.User
+	userStorage map[int64]*entities.User
 	//userMaxId   int64
 
-	locationStorage []*entities.Location
+	locationStorage map[int64]*entities.Location
 	//locationNextId  int64
 
-	visitStorage []*entities.Visit
+	visitStorage map[int64]*entities.Visit
 	//visitNextId  int64
 
-	userToVisits     [][]int64
-	locationToVisits [][]int64
+	userToVisits     map[int64][]int64
+	locationToVisits map[int64][]int64
 }
 
 var ErrNotFound = errors.New("no such entity")
@@ -39,11 +39,11 @@ func NewStorage(o Opts) *Container {
 	return &Container{
 		Opts:             o,
 		now:              time.Now(),
-		userStorage:      make([]*entities.User, 500000),
-		locationStorage:  make([]*entities.Location, 500000),
-		visitStorage:     make([]*entities.Visit, 500000),
-		userToVisits:     make([][]int64, 500000),
-		locationToVisits: make([][]int64, 500000),
+		userStorage:      make(map[int64]*entities.User, 1000000),
+		locationStorage:  make(map[int64]*entities.Location, 1000000),
+		visitStorage:     make(map[int64]*entities.Visit, 1000000),
+		userToVisits:     make(map[int64][]int64, 1000000),
+		locationToVisits: make(map[int64][]int64, 1000000),
 	}
 }
 func (c *Container) SetNow(t time.Time) {
@@ -59,13 +59,13 @@ func (c *Container) ProcessLoad() {
 		visit.Location = c.locationStorage[*visit.LocationID]
 
 		// to User
-		if l := c.userToVisits[*visit.UserID]; l == nil {
+		if l, ok := c.userToVisits[*visit.UserID]; ok && l == nil {
 			c.userToVisits[*visit.UserID] = []int64{}
 		}
 		c.userToVisits[*visit.UserID] = append(c.userToVisits[*visit.UserID], visit.ID)
 
 		// to Location
-		if l := c.locationToVisits[*visit.LocationID]; l == nil {
+		if l, ok := c.locationToVisits[*visit.LocationID]; ok &&  l == nil {
 			c.locationToVisits[*visit.LocationID] = []int64{}
 		}
 		c.locationToVisits[*visit.LocationID] = append(c.locationToVisits[*visit.LocationID], visit.ID)
@@ -113,58 +113,51 @@ func (c *Container) NewUser(u *entities.User) {
 	//id := atomic.AddInt32(&c.userMaxId, 1)
 	//u.ID = id
 	c.Lock()
-	c.growUser(u.ID)
 	c.userStorage[u.ID] = u
+	c.userToVisits[u.ID] = []int64{}
 	c.Unlock()
 }
 func (c *Container) growUser(n int64) {
-	newN := n*3/2
-	if n >= int64(len(c.userStorage)) {
-		tmp := make([]*entities.User, newN)
-		copy(tmp, c.userStorage)
-		c.userStorage = tmp
-	}
-	if n >= int64(len(c.userToVisits)) {
-		tmp := make([][]int64, newN)
-		copy(tmp, c.userToVisits)
-		c.userToVisits = tmp
-	}
-	if n >= int64(len(c.locationToVisits)) {
-		tmp := make([][]int64, newN)
-		copy(tmp, c.locationToVisits)
-		c.locationToVisits = tmp
-	}
+
+	//newN := n*3/2
+	//if n >= int64(len(c.userStorage)) {
+	//	tmp := make([]*entities.User, newN)
+	//	copy(tmp, c.userStorage)
+	//	c.userStorage = tmp
+	//}
+	//if n >= int64(len(c.userToVisits)) {
+	//	tmp := make([][]int64, newN)
+	//	copy(tmp, c.userToVisits)
+	//	c.userToVisits = tmp
+	//}
+	//if n >= int64(len(c.locationToVisits)) {
+	//	tmp := make([][]int64, newN)
+	//	copy(tmp, c.locationToVisits)
+	//	c.locationToVisits = tmp
+	//}
 }
 
 func (c *Container) LoadUsers(vs []*entities.User) {
 	c.Lock()
 	for _, v := range vs {
-		c.growUser(v.ID)
 		c.userStorage[v.ID] = v
 	}
-	c.growUser(int64(len(c.userStorage)*3/2))
 	c.Unlock()
 }
 
 func (c *Container) UpdateUser(u *entities.User) error {
 	c.Lock()
 	defer c.Unlock()
-	if u.ID >= int64(len(c.userStorage)) {
-		return ErrNotFound
-	}
-	if v := c.userStorage[u.ID]; v != nil {
+	if v, ok := c.userStorage[u.ID]; ok && v != nil {
 		v.Update(u)
 		return nil
 	}
 	return ErrNotFound
 }
 func (c *Container) GetUser(ID int64) (*entities.User, error) {
-	//c.RLock()
-	//defer c.RUnlock()
-	if ID >= int64(len(c.userStorage)) {
-		return nil, ErrNotFound
-	}
-	if u := c.userStorage[ID]; u != nil {
+	c.RLock()
+	defer c.RUnlock()
+	if u, ok := c.userStorage[ID]; ok && u != nil {
 		return u, nil
 	}
 	return nil, ErrNotFound
@@ -173,51 +166,41 @@ func (c *Container) GetUser(ID int64) (*entities.User, error) {
 // ----
 
 func (c *Container) NewLocation(v *entities.Location) {
-	//id := atomic.AddInt32(&c.userMaxId, 1)
-	//u.ID = id
 	c.Lock()
-	c.growLocation(int64(v.ID))
 	c.locationStorage[v.ID] = v
+	c.locationToVisits[v.ID] = []int64{}
 	c.Unlock()
 }
 func (c *Container) growLocation(n int64) {
-	if n >= int64(len(c.locationStorage)) {
-		tmp := make([]*entities.Location, n*3/2)
-		copy(tmp, c.locationStorage)
-		c.locationStorage = tmp
-	}
+	//if n >= int64(len(c.locationStorage)) {
+	//	tmp := make([]*entities.Location, n*3/2)
+	//	copy(tmp, c.locationStorage)
+	//	c.locationStorage = tmp
+	//}
 }
 
 func (c *Container) LoadLocations(vs []*entities.Location) {
 	c.Lock()
 	for _, v := range vs {
-		c.growLocation(int64(v.ID))
 		c.locationStorage[v.ID] = v
 	}
-	//c.growLocation(int64(len(c.locationStorage)*3/2))
 	c.Unlock()
 }
 
 func (c *Container) UpdateLocation(u *entities.Location) error {
 	c.Lock()
 	defer c.Unlock()
-	if u.ID >= int64(len(c.locationStorage)) {
-		return ErrNotFound
-	}
-	if v := c.locationStorage[u.ID]; v != nil {
+	if v, ok := c.locationStorage[u.ID]; ok && v != nil {
 		v.Update(u)
 		return nil
 	}
 	return ErrNotFound
 }
 func (c *Container) GetLocation(ID int64) (*entities.Location, error) {
-	//c.RLock()
-	//defer c.RUnlock()
-	if ID >= int64(len(c.locationStorage)) {
-		return nil, ErrNotFound
-	}
+	c.RLock()
+	defer c.RUnlock()
 
-	if u := c.locationStorage[ID]; u != nil {
+	if u, ok := c.locationStorage[ID]; ok && u != nil {
 		return u, nil
 	}
 	return nil, ErrNotFound
@@ -231,15 +214,14 @@ func (c *Container) NewVisit(v *entities.Visit) error {
 	c.Lock()
 	defer c.Unlock()
 
-	if *v.UserID >= int64(len(c.userStorage)) || c.userStorage[*v.UserID] == nil {
+	if _, ok := c.userStorage[*v.UserID]; !ok {
 		return ErrBadRequest
 	}
 
-	if *v.LocationID >= int64(len(c.locationStorage)) || c.locationStorage[*v.LocationID] == nil {
+	if _, ok := c.locationStorage[*v.LocationID]; !ok {
 		return ErrBadRequest
 	}
 
-	c.growVisit(int64(v.ID))
 	v.User = c.userStorage[*v.UserID]
 	v.Location = c.locationStorage[*v.LocationID]
 	c.visitStorage[v.ID] = v
@@ -248,40 +230,35 @@ func (c *Container) NewVisit(v *entities.Visit) error {
 	return nil
 }
 func (c *Container) growVisit(n int64) {
-	if n >= int64(len(c.visitStorage)) {
-		tmp := make([]*entities.Visit, n*3/2)
-		copy(tmp, c.visitStorage)
-		c.visitStorage = tmp
-	}
+	//if n >= int64(len(c.visitStorage)) {
+	//	tmp := make([]*entities.Visit, n*3/2)
+	//	copy(tmp, c.visitStorage)
+	//	c.visitStorage = tmp
+	//}
 }
 
 func (c *Container) LoadVisits(vs []*entities.Visit) {
 	c.Lock()
 	for _, v := range vs {
-		c.growVisit(int64(v.ID))
 		c.visitStorage[v.ID] = v
 	}
-	c.growLocation(int64(len(c.visitStorage)*3/2))
 	c.Unlock()
 }
 
 func (c *Container) UpdateVisit(u *entities.Visit) error {
 	c.Lock()
 	defer c.Unlock()
-	if int64(len(c.visitStorage))-1 < u.ID {
-		return ErrNotFound
-	}
-	visit := c.visitStorage[u.ID]
-	if visit == nil {
+	visit, ok := c.visitStorage[u.ID]
+	if !ok || visit == nil {
 		return ErrNotFound
 	}
 	if u.UserID != nil {
-		if *u.UserID >= int64(len(c.userStorage)) || c.userStorage[*u.UserID] == nil {
+		if _, ok := c.userStorage[*u.UserID]; !ok {
 			return ErrBadRequest
 		}
 	}
 	if u.LocationID != nil {
-		if *u.LocationID >= int64(len(c.locationStorage)) || c.locationStorage[*u.LocationID] == nil {
+		if _, ok := c.locationStorage[*u.LocationID]; !ok {
 			return ErrBadRequest
 		}
 	}
@@ -322,12 +299,9 @@ func (c *Container) UpdateVisit(u *entities.Visit) error {
 	return nil
 }
 func (c *Container) GetVisit(ID int64) (*entities.Visit, error) {
-	//c.RLock()
-	//defer c.RUnlock()
-	if ID >= int64(len(c.visitStorage)) {
-		return nil, ErrNotFound
-	}
-	if u := c.visitStorage[ID]; u != nil {
+	c.RLock()
+	defer c.RUnlock()
+	if u, ok := c.visitStorage[ID]; ok && u != nil {
 		return u, nil
 	}
 	return nil, ErrNotFound
@@ -393,10 +367,8 @@ func (c *Container) GetUserVisitsFiltered(ID int64, opts GetUserVisitsOpts) *ent
 func (c *Container) getUserVisits(ID int64) (res []*entities.Visit) {
 	c.RLock()
 	defer c.RUnlock()
-	if ID >= int64(len(c.userToVisits)) {
-		return nil
-	}
-	if visits := c.userToVisits[ID]; visits != nil {
+
+	if visits, ok := c.userToVisits[ID]; ok && visits != nil {
 		for _, vid := range visits {
 			res = append(res, c.visitStorage[vid])
 		}
@@ -464,10 +436,7 @@ func (c *Container) GetLocationVisitsFilteredAvg(ID int64, opts GetLocationVisit
 func (c *Container) getLocationVisits(ID int64) (res []*entities.Visit) {
 	c.RLock()
 	defer c.RUnlock()
-	if ID >= int64(len(c.locationToVisits)) {
-		return nil
-	}
-	if visits := c.locationToVisits[ID]; visits != nil {
+	if visits, ok := c.locationToVisits[ID]; ok && visits != nil {
 		for _, vid := range visits {
 			res = append(res, c.visitStorage[vid])
 		}
