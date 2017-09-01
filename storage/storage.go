@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/urakozz/highloadcamp/entities"
+	"sync/atomic"
 )
 
 type Container struct {
@@ -27,6 +28,8 @@ type Container struct {
 
 	userToVisits     map[int64][]int64
 	locationToVisits map[int64][]int64
+	sortedL2V        int64
+	updateEvent      chan struct{}
 }
 
 var ErrNotFound = errors.New("no such entity")
@@ -44,6 +47,7 @@ func NewStorage(o Opts) *Container {
 		visitStorage:     make(map[int64]*entities.Visit, 1000000),
 		userToVisits:     make(map[int64][]int64, 1000000),
 		locationToVisits: make(map[int64][]int64, 1000000),
+		updateEvent:      make(chan struct{}, 100),
 	}
 }
 func (c *Container) SetNow(t time.Time) {
@@ -65,45 +69,42 @@ func (c *Container) ProcessLoad() {
 		c.userToVisits[*visit.UserID] = append(c.userToVisits[*visit.UserID], visit.ID)
 
 		// to Location
-		if l, ok := c.locationToVisits[*visit.LocationID]; ok &&  l == nil {
+		if l, ok := c.locationToVisits[*visit.LocationID]; ok && l == nil {
 			c.locationToVisits[*visit.LocationID] = []int64{}
 		}
 		c.locationToVisits[*visit.LocationID] = append(c.locationToVisits[*visit.LocationID], visit.ID)
 	}
+	c.sortL2V()
 	c.Unlock()
+}
+func (c *Container) sortL2V() {
+	for k, v := range c.locationToVisits {
+		var list visitList
+		for _, id := range v {
+			list = append(list, c.visitStorage[id])
+		}
+		sort.Sort(list)
+		c.locationToVisits[k] = list.Ids()
+	}
+	atomic.StoreInt64(&c.sortedL2V, 1)
 }
 func (c *Container) WarmUp() {
 	c.RLock()
 	defer c.RUnlock()
 	var sum int64
 	for _, v := range c.visitStorage {
-		if v == nil {
-			continue
-		}
 		sum += v.ID
 	}
 	for _, v := range c.locationStorage {
-		if v == nil {
-			continue
-		}
 		sum += v.ID
 	}
 	for _, v := range c.userStorage {
-		if v == nil {
-			continue
-		}
 		sum += v.ID
 	}
 	for _, v := range c.userToVisits {
-		if v == nil {
-			continue
-		}
 		sum += int64(len(v))
 	}
 	for _, v := range c.locationToVisits {
-		if v == nil {
-			continue
-		}
 		sum += int64(len(v))
 	}
 	log.Println(sum)
@@ -335,6 +336,25 @@ func (l shortVisitList) Less(i, j int) bool {
 }
 func (l shortVisitList) Swap(i, j int) {
 	l[i], l[j] = l[j], l[i]
+}
+
+type visitList []*entities.Visit
+
+func (l visitList) Len() int {
+	return len(l)
+}
+func (l visitList) Less(i, j int) bool {
+	return *l[i].VisitedAt < *l[j].VisitedAt
+}
+func (l visitList) Swap(i, j int) {
+	l[i], l[j] = l[j], l[i]
+}
+func (l visitList) Ids() []int64 {
+	ids := make([]int64, len(l))
+	for i, v := range l {
+		ids[i] = v.ID
+	}
+	return ids
 }
 
 func (c *Container) GetUserVisitsFiltered(ID int64, opts GetUserVisitsOpts) *entities.ShortVisitContainer {

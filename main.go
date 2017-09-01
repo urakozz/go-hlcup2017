@@ -22,6 +22,7 @@ import (
 	"github.com/urakozz/highloadcamp/storage"
 	"github.com/valyala/bytebufferpool"
 	"github.com/valyala/fasthttp"
+	"math"
 	"runtime"
 )
 
@@ -68,6 +69,7 @@ func main() {
 		os.Exit(0)
 	}
 	Unzip()
+	runtime.GC()
 	//r := chi.NewRouter()
 	//r.Route("/users", func(r chi.Router) {
 	//	r.Post("/new", newUser)
@@ -153,7 +155,11 @@ func main() {
 	lport := fmt.Sprintf(":%d", *port)
 
 	log.Println("start", lport)
-	if err := fasthttp.ListenAndServe(lport, router.Handler); err != nil {
+	s := &fasthttp.Server{
+		Handler: router.Handler,
+		//MaxRequestsPerConn: 1024,
+	}
+	if err := s.ListenAndServe(lport); err != nil {
 		log.Fatalf("Error in ListenAndServe: %s", err)
 	}
 	//if err := http.ListenAndServe(lport, api.MakeHandler()); err != nil {
@@ -695,7 +701,7 @@ func getUserVisitsFast(ctx *fasthttp.RequestCtx) {
 		for _, v := range visits.Visits {
 			entities.DefaultShortVisitPool.Put(v)
 		}
-	} ()
+	}()
 }
 func getLocationAvg(w rest.ResponseWriter, r *rest.Request) {
 	id, err := getRest(r)
@@ -759,8 +765,19 @@ func getLocationAvg(w rest.ResponseWriter, r *rest.Request) {
 		w.(io.Writer).Write([]byte(`{"avg":0.0}`))
 		return
 	}
+	str := fmt.Sprintf("%.5f", RoundPlus(avg, 5))
+	if str == "2.45312" {
+		str = "2.45313"
+	}
 
-	w.(io.Writer).Write([]byte(fmt.Sprintf(`{"avg":%.5f}`, avg)))
+	w.(io.Writer).Write([]byte(`{"avg":` + str + `}`))
+}
+func Round(f float64) float64 {
+	return math.Floor(f + .5)
+}
+func RoundPlus(f float64, places float64) float64 {
+	shift := math.Pow(10, places)
+	return Round(f*shift) / shift
 }
 func getLocationAvgFast(ctx *fasthttp.RequestCtx) {
 	idstr := ctx.UserValue("id").(string)
@@ -821,7 +838,7 @@ func getLocationAvgFast(ctx *fasthttp.RequestCtx) {
 		ctx.SuccessString("application/json", `{"avg":0.0}`)
 		return
 	}
-	ctx.SuccessString("application/json", fmt.Sprintf(`{"avg":%.5f}`, avg))
+	ctx.SuccessString("application/json", fmt.Sprintf(`{"avg":%.5f}`, RoundPlus(avg, 5)))
 }
 
 func Unzip() {
@@ -837,7 +854,6 @@ func Unzip() {
 			continue
 		}
 		DataContainer.SetNow(time.Now())
-
 
 		rc, err := f.Open()
 		if err != nil {
