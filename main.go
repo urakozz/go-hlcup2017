@@ -2,7 +2,6 @@ package main
 
 import (
 	"archive/zip"
-	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -15,6 +14,10 @@ import (
 	"strings"
 	"time"
 
+	"runtime"
+
+	"bytes"
+
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/buaazp/fasthttprouter"
 	"github.com/mailru/easyjson"
@@ -22,12 +25,11 @@ import (
 	"github.com/urakozz/highloadcamp/storage"
 	"github.com/valyala/bytebufferpool"
 	"github.com/valyala/fasthttp"
-	"math"
-	"runtime"
 )
 
 var DataContainer = storage.NewStorage(storage.Opts{})
 var emptyResp = []byte("{}")
+var emptyAvg = []byte(`{"avg":0.0}`)
 
 type TimerMiddleware struct{}
 
@@ -70,25 +72,6 @@ func main() {
 	}
 	Unzip()
 	runtime.GC()
-	//r := chi.NewRouter()
-	//r.Route("/users", func(r chi.Router) {
-	//	r.Post("/new", newUser)
-	//	r.Post("/{id}", updateUser)
-	//	r.Get("/{id}", getUser)
-	//	r.Get("/{id}/visits", getUserVisits)
-	//})
-	//r.Route("/locations", func(r chi.Router) {
-	//	r.Post("/new", newLocation)
-	//	r.Post("/{id}", updateLocation)
-	//	r.Get("/{id}", getLocation)
-	//	r.Get("/{id}/avg", getLocationAvg)
-	//})
-	//r.Route("/visits", func(r chi.Router) {
-	//	r.Get("/", listVisit)
-	//	r.Post("/new", newVisit)
-	//	r.Post("/{id}", updateVisit)
-	//	r.Get("/{id}", getVisit)
-	//})
 
 	router := fasthttprouter.New()
 	router.POST("/users/:id", func(ctx *fasthttp.RequestCtx) {
@@ -130,28 +113,6 @@ func main() {
 		log.Println("finish location", time.Since(t))
 	})
 
-	api := rest.NewApi()
-	api.Use(&TimerMiddleware{})
-	restRouter, err := rest.MakeRouter(
-		rest.Post("/users/new", newUser),
-		rest.Post("/users/#id", updateUser),
-		rest.Get("/users/#id", getUser),
-		rest.Get("/users/#id/visits", getUserVisits),
-
-		rest.Post("/locations/new", newLocation),
-		rest.Post("/locations/#id", updateLocation),
-		rest.Get("/locations/#id", getLocation),
-		rest.Get("/locations/#id/avg", getLocationAvg),
-
-		rest.Post("/visits/new", newVisit),
-		rest.Post("/visits/#id", updateVisit),
-		rest.Get("/visits/#id", getVisit),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	api.SetApp(restRouter)
-
 	lport := fmt.Sprintf(":%d", *port)
 
 	log.Println("start", lport)
@@ -162,25 +123,8 @@ func main() {
 	if err := s.ListenAndServe(lport); err != nil {
 		log.Fatalf("Error in ListenAndServe: %s", err)
 	}
-	//if err := http.ListenAndServe(lport, api.MakeHandler()); err != nil {
-	//	log.Fatal(err)
-	//}
 }
 
-// Done
-func getUser(w rest.ResponseWriter, r *rest.Request) {
-	id, err := getRest(r)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	u, err := DataContainer.GetUser(int64(id))
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	easyjson.MarshalToWriter(u, w.(io.Writer))
-}
 func getUserFast(ctx *fasthttp.RequestCtx) {
 	idstr := ctx.UserValue("id").(string)
 	id, err := strconv.Atoi(idstr)
@@ -196,21 +140,6 @@ func getUserFast(ctx *fasthttp.RequestCtx) {
 	easyjson.MarshalToWriter(u, ctx)
 }
 
-// Done
-func getLocation(w rest.ResponseWriter, r *rest.Request) {
-	id, err := getRest(r)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	u, err := DataContainer.GetLocation(int64(id))
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	easyjson.MarshalToWriter(u, w.(io.Writer))
-}
 func getLocationFast(ctx *fasthttp.RequestCtx) {
 	idstr := ctx.UserValue("id").(string)
 	id, err := strconv.ParseInt(idstr, 10, 0)
@@ -226,25 +155,6 @@ func getLocationFast(ctx *fasthttp.RequestCtx) {
 	easyjson.MarshalToWriter(u, ctx)
 }
 
-func listVisit(w http.ResponseWriter, r *http.Request) {
-	log.Println("list visit")
-	json.NewEncoder(w).Encode(DataContainer.ListVisits())
-}
-
-// Done
-func getVisit(w rest.ResponseWriter, r *rest.Request) {
-	id, err := getRest(r)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	u, err := DataContainer.GetVisit(int64(id))
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	easyjson.MarshalToWriter(u, w.(io.Writer))
-}
 func getVisitFast(ctx *fasthttp.RequestCtx) {
 	idstr := ctx.UserValue("id").(string)
 	id, err := strconv.ParseInt(idstr, 10, 0)
@@ -260,38 +170,6 @@ func getVisitFast(ctx *fasthttp.RequestCtx) {
 	easyjson.MarshalToWriter(u, ctx)
 }
 
-// UPDATE
-// Done
-func updateUser(w rest.ResponseWriter, r *rest.Request) {
-	id, err := getRest(r)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	b, _ := ioutil.ReadAll(r.Body)
-	var tmp map[string]interface{}
-	json.NewDecoder(bytes.NewReader(b)).Decode(&tmp)
-	for _, v := range tmp {
-		if v == nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	}
-	u := &entities.User{}
-	err = easyjson.Unmarshal(b, u)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	u.ID = int64(id)
-
-	err = DataContainer.UpdateUser(u)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	w.(io.Writer).Write(emptyResp)
-}
 func updateUserFast(ctx *fasthttp.RequestCtx) {
 	idstr := ctx.UserValue("id").(string)
 	id, err := strconv.ParseInt(idstr, 10, 0)
@@ -330,37 +208,6 @@ func updateUserFast(ctx *fasthttp.RequestCtx) {
 	ctx.Success("application/json", emptyResp)
 }
 
-// Done
-func updateLocation(w rest.ResponseWriter, r *rest.Request) {
-	id, err := getRest(r)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	b, _ := ioutil.ReadAll(r.Body)
-	var tmp map[string]interface{}
-	json.Unmarshal(b, &tmp)
-	for _, v := range tmp {
-		if v == nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	}
-	u := &entities.Location{}
-	err = easyjson.Unmarshal(b, u)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	u.ID = int64(id)
-
-	err = DataContainer.UpdateLocation(u)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	w.(io.Writer).Write(emptyResp)
-}
 func updateLocationFast(ctx *fasthttp.RequestCtx) {
 	idstr := ctx.UserValue("id").(string)
 	id, err := strconv.ParseInt(idstr, 10, 0)
@@ -397,45 +244,6 @@ func updateLocationFast(ctx *fasthttp.RequestCtx) {
 	ctx.Success("application/json", emptyResp)
 }
 
-// Done
-func updateVisit(w rest.ResponseWriter, r *rest.Request) {
-	id, err := getRest(r)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	b, _ := ioutil.ReadAll(r.Body)
-	var tmp map[string]interface{}
-	json.NewDecoder(bytes.NewReader(b)).Decode(&tmp)
-	for _, v := range tmp {
-		if v == nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	}
-	u := &entities.Visit{}
-	err = easyjson.Unmarshal(b, u)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	//if u.ID >= 0 && u.ID != int64(id) {
-	//	w.WriteHeader(http.StatusBadRequest)
-	//	return
-	//}
-	u.ID = int64(id)
-
-	err = DataContainer.UpdateVisit(u)
-	if err == storage.ErrNotFound {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	if err == storage.ErrBadRequest {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	w.(io.Writer).Write(emptyResp)
-}
 func updateVisitFast(ctx *fasthttp.RequestCtx) {
 	idstr := ctx.UserValue("id").(string)
 	id, err := strconv.ParseInt(idstr, 10, 0)
@@ -518,25 +326,7 @@ func newUserFast(ctx *fasthttp.RequestCtx) {
 	DataContainer.NewUser(u)
 	ctx.Success("application/json", emptyResp)
 }
-func newLocation(w rest.ResponseWriter, r *rest.Request) {
-	u := &entities.Location{}
-	err := easyjson.UnmarshalFromReader(r.Body, u)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if u.ID == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if err = u.Validate(); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	DataContainer.NewLocation(u)
-	w.(io.Writer).Write(emptyResp)
-}
+
 func newLocationFast(ctx *fasthttp.RequestCtx) {
 	u := &entities.Location{}
 	err := easyjson.Unmarshal(ctx.PostBody(), u)
@@ -556,28 +346,7 @@ func newLocationFast(ctx *fasthttp.RequestCtx) {
 	DataContainer.NewLocation(u)
 	ctx.Success("application/json", emptyResp)
 }
-func newVisit(w rest.ResponseWriter, r *rest.Request) {
-	u := &entities.Visit{}
-	err := easyjson.UnmarshalFromReader(r.Body, u)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if u.ID == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if err = u.Validate(); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if err := DataContainer.NewVisit(u); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	w.(io.Writer).Write(emptyResp)
-}
+
 func newVisitFast(ctx *fasthttp.RequestCtx) {
 	u := &entities.Visit{}
 	err := easyjson.Unmarshal(ctx.PostBody(), u)
@@ -601,57 +370,6 @@ func newVisitFast(ctx *fasthttp.RequestCtx) {
 	ctx.Success("application/json", emptyResp)
 }
 
-// CUSTOM
-func getUserVisits(w rest.ResponseWriter, r *rest.Request) {
-	id, err := getRest(r)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	_, err = DataContainer.GetUser(int64(id))
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	opts := storage.GetUserVisitsOpts{}
-	if fromDate := r.URL.Query().Get("fromDate"); fromDate != "" {
-		if v, err := strconv.Atoi(fromDate); err == nil {
-			v32 := int64(v)
-			opts.FromDate = &v32
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	}
-	if toDate := r.URL.Query().Get("toDate"); toDate != "" {
-		if v, err := strconv.Atoi(toDate); err == nil {
-			v32 := int64(v)
-			opts.ToDate = &v32
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	}
-
-	if toDistance := r.URL.Query().Get("toDistance"); toDistance != "" {
-		if v, err := strconv.Atoi(toDistance); err == nil {
-			v32 := int64(v)
-			opts.ToDistance = &v32
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	}
-
-	if v := r.URL.Query().Get("country"); v != "" {
-		opts.Country = &v
-	}
-
-	visits := DataContainer.GetUserVisitsFiltered(int64(id), opts)
-
-	w.Header().Set("Transfer-Encoding", "identity")
-	w.WriteJson(visits)
-}
 func getUserVisitsFast(ctx *fasthttp.RequestCtx) {
 	idstr := ctx.UserValue("id").(string)
 	id, err := strconv.ParseInt(idstr, 10, 0)
@@ -703,82 +421,7 @@ func getUserVisitsFast(ctx *fasthttp.RequestCtx) {
 		}
 	}()
 }
-func getLocationAvg(w rest.ResponseWriter, r *rest.Request) {
-	id, err := getRest(r)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	_, err = DataContainer.GetLocation(int64(id))
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	opts := storage.GetLocationVisitsOpts{}
-	if fromDate := r.URL.Query().Get("fromDate"); fromDate != "" {
-		if v, err := strconv.Atoi(fromDate); err == nil {
-			v32 := int64(v)
-			opts.FromDate = &v32
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	}
-	if toDate := r.URL.Query().Get("toDate"); toDate != "" {
-		if v, err := strconv.Atoi(toDate); err == nil {
-			v32 := int64(v)
-			opts.ToDate = &v32
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	}
-	if fromAge := r.URL.Query().Get("fromAge"); fromAge != "" {
-		if v, err := strconv.Atoi(fromAge); err == nil {
-			v32 := int64(v)
-			opts.FromAge = &v32
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	}
-	if toAge := r.URL.Query().Get("toAge"); toAge != "" {
-		if v, err := strconv.Atoi(toAge); err == nil {
-			v32 := int64(v)
-			opts.ToAge = &v32
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	}
-	if gen := r.URL.Query().Get("gender"); gen != "" {
-		if gen == "m" || gen == "f" {
-			opts.Gender = &gen
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	}
 
-	avg := DataContainer.GetLocationVisitsFilteredAvg(int64(id), opts)
-	if avg == 0 {
-		w.(io.Writer).Write([]byte(`{"avg":0.0}`))
-		return
-	}
-	str := fmt.Sprintf("%.5f", RoundPlus(avg, 5))
-	if str == "2.45312" {
-		str = "2.45313"
-	}
-
-	w.(io.Writer).Write([]byte(`{"avg":` + str + `}`))
-}
-func Round(f float64) float64 {
-	return math.Floor(f + .5)
-}
-func RoundPlus(f float64, places float64) float64 {
-	shift := math.Pow(10, places)
-	return Round(f*shift) / shift
-}
 func getLocationAvgFast(ctx *fasthttp.RequestCtx) {
 	idstr := ctx.UserValue("id").(string)
 	id, err := strconv.ParseInt(idstr, 10, 0)
@@ -835,10 +478,13 @@ func getLocationAvgFast(ctx *fasthttp.RequestCtx) {
 
 	avg := DataContainer.GetLocationVisitsFilteredAvg(int64(id), opts)
 	if avg == 0 {
-		ctx.SuccessString("application/json", `{"avg":0.0}`)
+		ctx.Success("application/json", emptyAvg)
 		return
 	}
-	ctx.SuccessString("application/json", fmt.Sprintf(`{"avg":%.5f}`, RoundPlus(avg, 5)))
+	buf := bytes.NewBufferString(`{"avg":`)
+	buf.WriteString(strconv.FormatFloat(avg, 'f', 5, 64))
+	buf.WriteRune('}')
+	ctx.Success("application/json", buf.Bytes())
 }
 
 func Unzip() {
@@ -904,12 +550,5 @@ func Unzip() {
 		rc.Close()
 	}
 	DataContainer.ProcessLoad()
-	DataContainer.WarmUp()
 }
 
-//func getId(r *http.Request) (int, error) {
-//	return strconv.Atoi(chi.URLParam(r, "id"))
-//}
-func getRest(r *rest.Request) (int, error) {
-	return strconv.Atoi(r.PathParam("id"))
-}

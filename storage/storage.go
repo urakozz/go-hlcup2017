@@ -2,13 +2,11 @@ package storage
 
 import (
 	"errors"
-	"log"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/urakozz/highloadcamp/entities"
-	"sync/atomic"
 )
 
 type Container struct {
@@ -28,8 +26,7 @@ type Container struct {
 
 	userToVisits     map[int64][]int64
 	locationToVisits map[int64][]int64
-	sortedL2V        int64
-	updateEvent      chan struct{}
+	//sortedL2V        int64
 }
 
 var ErrNotFound = errors.New("no such entity")
@@ -47,7 +44,6 @@ func NewStorage(o Opts) *Container {
 		visitStorage:     make(map[int64]*entities.Visit, 1000000),
 		userToVisits:     make(map[int64][]int64, 1000000),
 		locationToVisits: make(map[int64][]int64, 1000000),
-		updateEvent:      make(chan struct{}, 100),
 	}
 }
 func (c *Container) SetNow(t time.Time) {
@@ -74,40 +70,7 @@ func (c *Container) ProcessLoad() {
 		}
 		c.locationToVisits[*visit.LocationID] = append(c.locationToVisits[*visit.LocationID], visit.ID)
 	}
-	c.sortL2V()
 	c.Unlock()
-}
-func (c *Container) sortL2V() {
-	for k, v := range c.locationToVisits {
-		var list visitList
-		for _, id := range v {
-			list = append(list, c.visitStorage[id])
-		}
-		sort.Sort(list)
-		c.locationToVisits[k] = list.Ids()
-	}
-	atomic.StoreInt64(&c.sortedL2V, 1)
-}
-func (c *Container) WarmUp() {
-	c.RLock()
-	defer c.RUnlock()
-	var sum int64
-	for _, v := range c.visitStorage {
-		sum += v.ID
-	}
-	for _, v := range c.locationStorage {
-		sum += v.ID
-	}
-	for _, v := range c.userStorage {
-		sum += v.ID
-	}
-	for _, v := range c.userToVisits {
-		sum += int64(len(v))
-	}
-	for _, v := range c.locationToVisits {
-		sum += int64(len(v))
-	}
-	log.Println(sum)
 }
 
 func (c *Container) NewUser(u *entities.User) {
@@ -416,16 +379,7 @@ func (c *Container) GetLocationVisitsFilteredAvg(ID int64, opts GetLocationVisit
 	if opts.ToAge != nil {
 		fromBdTs = time.Date(c.now.Year()-int(*opts.ToAge), c.now.Month(), c.now.Day(), c.now.Hour(), c.now.Minute(), c.now.Second(), 0, time.UTC).Unix()
 	}
-	var fromAge int64
-	var toAge int64 = 200
-	if opts.FromAge != nil {
-		fromAge = *opts.FromAge
-	}
-	if opts.ToAge != nil {
-		toAge = *opts.ToAge
-	}
-	_, _ = fromAge, toAge
-	//log.Println("from", time.Unix(fromBdTs, 0) ,"to",time.Unix(toBdTs, 0))
+
 	for _, v := range c.getLocationVisits(ID) {
 		//j, _ := json.Marshal(v)
 		//log.Println(string(j))
@@ -438,10 +392,6 @@ func (c *Container) GetLocationVisitsFilteredAvg(ID int64, opts GetLocationVisit
 		if opts.Gender != nil && *v.User.Gender != *opts.Gender {
 			continue
 		}
-		age := getAge(time.Unix(int64(*v.User.Birthdate), 0), c.now)
-		_ = age
-		//age = int64(time.Since(time.Unix(int64(*v.User.Birthdate), 0)).Hours() / 24 / 365)
-		//if fromAge < age && age < toAge {
 		if fromBdTs < int64(*v.User.Birthdate) && int64(*v.User.Birthdate) < toBdTs {
 			sum += int64(*v.Mark)
 			i++
@@ -465,12 +415,3 @@ func (c *Container) getLocationVisits(ID int64) (res []*entities.Visit) {
 	return nil
 }
 
-func getAge(bday, now time.Time) int64 {
-	rawYears := int64(now.Year() - bday.Year())
-	if now.Month() < bday.Month() {
-		rawYears--
-	} else if now.Month() == bday.Month() && now.Day() < bday.Day() {
-		rawYears--
-	}
-	return rawYears
-}
