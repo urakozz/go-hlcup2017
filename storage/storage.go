@@ -15,14 +15,13 @@ type Container struct {
 
 	now time.Time
 
-	userStorage map[int64]*entities.User
-	//userMaxId   int64
-
+	userStorage     map[int64]*entities.User
 	locationStorage map[int64]*entities.Location
-	//locationNextId  int64
+	visitStorage    map[int64]*entities.Visit
 
-	visitStorage map[int64]*entities.Visit
-	//visitNextId  int64
+	userList     []*entities.User
+	locationList []*entities.Location
+	visitList    []*entities.Visit
 
 	userToVisits     map[int64][]int64
 	locationToVisits map[int64][]int64
@@ -81,30 +80,12 @@ func (c *Container) NewUser(u *entities.User) {
 	c.userToVisits[u.ID] = []int64{}
 	c.Unlock()
 }
-func (c *Container) growUser(n int64) {
-
-	//newN := n*3/2
-	//if n >= int64(len(c.userStorage)) {
-	//	tmp := make([]*entities.User, newN)
-	//	copy(tmp, c.userStorage)
-	//	c.userStorage = tmp
-	//}
-	//if n >= int64(len(c.userToVisits)) {
-	//	tmp := make([][]int64, newN)
-	//	copy(tmp, c.userToVisits)
-	//	c.userToVisits = tmp
-	//}
-	//if n >= int64(len(c.locationToVisits)) {
-	//	tmp := make([][]int64, newN)
-	//	copy(tmp, c.locationToVisits)
-	//	c.locationToVisits = tmp
-	//}
-}
 
 func (c *Container) LoadUsers(vs []*entities.User) {
 	c.Lock()
 	for _, v := range vs {
 		c.userStorage[v.ID] = v
+		v.SaveJSON()
 	}
 	c.Unlock()
 }
@@ -135,18 +116,12 @@ func (c *Container) NewLocation(v *entities.Location) {
 	c.locationToVisits[v.ID] = []int64{}
 	c.Unlock()
 }
-func (c *Container) growLocation(n int64) {
-	//if n >= int64(len(c.locationStorage)) {
-	//	tmp := make([]*entities.Location, n*3/2)
-	//	copy(tmp, c.locationStorage)
-	//	c.locationStorage = tmp
-	//}
-}
 
 func (c *Container) LoadLocations(vs []*entities.Location) {
 	c.Lock()
 	for _, v := range vs {
 		c.locationStorage[v.ID] = v
+		v.SaveJSON()
 	}
 	c.Unlock()
 }
@@ -193,18 +168,12 @@ func (c *Container) NewVisit(v *entities.Visit) error {
 	c.locationToVisits[*v.LocationID] = append(c.locationToVisits[*v.LocationID], v.ID)
 	return nil
 }
-func (c *Container) growVisit(n int64) {
-	//if n >= int64(len(c.visitStorage)) {
-	//	tmp := make([]*entities.Visit, n*3/2)
-	//	copy(tmp, c.visitStorage)
-	//	c.visitStorage = tmp
-	//}
-}
 
 func (c *Container) LoadVisits(vs []*entities.Visit) {
 	c.Lock()
 	for _, v := range vs {
 		c.visitStorage[v.ID] = v
+		v.SaveJSON()
 	}
 	c.Unlock()
 }
@@ -414,4 +383,3 @@ func (c *Container) getLocationVisits(ID int64) (res []*entities.Visit) {
 	}
 	return nil
 }
-

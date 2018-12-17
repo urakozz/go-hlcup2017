@@ -2,6 +2,7 @@ package entities
 
 import (
 	"errors"
+	"sync/atomic"
 	"time"
 )
 
@@ -18,7 +19,6 @@ type LocationContainer struct {
 	Locations []*Location `json:"locations"`
 }
 
-
 // Location
 //{
 //"distance": 9,
@@ -33,12 +33,20 @@ type Location struct {
 	City     *string `json:"city"`
 	Place    *string `json:"place"`
 	Country  *string `json:"country"`
+	hasJSON  int32   `json:"-"`
+	json     []byte  `json:"-"`
+}
+
+func (v *Location) SaveJSON() {
+	v.json, _ = v.MarshalJSON()
+	atomic.StoreInt32(&v.hasJSON, 1)
 }
 
 func (l *Location) Reset() {
 	l.ID = 0
 	l.Distance, l.City = nil, nil
 	l.Place, l.Country = nil, nil
+	atomic.StoreInt32(&l.hasJSON, 0)
 }
 
 //func (u *Location) Clone() *Location {
@@ -54,6 +62,7 @@ func (l *Location) Reset() {
 //}
 
 func (u *Location) Update(new *Location) {
+	atomic.StoreInt32(&u.hasJSON, 0)
 	if new.Distance != nil {
 		u.Distance = new.Distance
 	}
@@ -108,6 +117,13 @@ type User struct {
 	LastName  *string `json:"last_name"`
 	Gender    *string `json:"gender"`
 	Birthdate *int64  `json:"birth_date,omitempty"`
+	hasJSON   int32   `json:"-"`
+	json      []byte  `json:"-"`
+}
+
+func (v *User) SaveJSON() {
+	v.json, _ = v.MarshalJSON()
+	atomic.StoreInt32(&v.hasJSON, 1)
 }
 
 func (u *User) Reset() {
@@ -115,20 +131,11 @@ func (u *User) Reset() {
 	u.Email, u.FirstName = nil, nil
 	u.LastName, u.Gender = nil, nil
 	u.Birthdate = nil
+	atomic.StoreInt32(&u.hasJSON, 0)
 }
 
-//func (u *User) Clone() *User {
-//	v := &User{}
-//	*v = *u
-//	v.ID = u.ID
-//	*v.Email = *u.Email
-//	*v.FirstName = *u.LastName
-//	*v.Gender = *u.Gender
-//	*v.Birthdate = *u.Birthdate
-//	return v
-//}
-
 func (u *User) Update(new *User) {
+	atomic.StoreInt32(&u.hasJSON, 0)
 	if new.Email != nil {
 		u.Email = new.Email
 	}
@@ -191,6 +198,13 @@ type Visit struct {
 	Mark       *uint8    `json:"mark"`
 	User       *User     `json:"-"`
 	Location   *Location `json:"-"`
+	hasJSON    int32     `json:"-"`
+	json       []byte    `json:"-"`
+}
+
+func (v *Visit) SaveJSON() {
+	v.json, _ = v.MarshalJSON()
+	atomic.StoreInt32(&v.hasJSON, 1)
 }
 
 func (v *Visit) Reset() {
@@ -198,6 +212,7 @@ func (v *Visit) Reset() {
 	v.LocationID, v.UserID = nil, nil
 	v.VisitedAt, v.Mark = nil, nil
 	v.User, v.Location = nil, nil
+	atomic.StoreInt32(&v.hasJSON, 0)
 }
 
 //func (u *Visit) Clone() *Visit {
@@ -238,7 +253,8 @@ type ShortVisit struct {
 	VisitedAt int64  `json:"visited_at"`
 	Place     string `json:"place"`
 }
-func(sv *ShortVisit) Reset() {
+
+func (sv *ShortVisit) Reset() {
 	sv.Mark = 0
 	sv.VisitedAt = 0
 	sv.Place = ""
@@ -280,6 +296,7 @@ type VisitDiff struct {
 }
 
 func (u *Visit) Update(new *Visit) (diff *VisitDiff) {
+	atomic.StoreInt32(&u.hasJSON, 0)
 	diff = &VisitDiff{}
 	if new.LocationID != nil {
 		diff.LocationID.HasDiff = true

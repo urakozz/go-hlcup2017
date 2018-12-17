@@ -3,7 +3,11 @@ import:
 - package: github.com/mailru/easyjson
 - package: github.com/valyala/fasthttp
   version: 52a0993b96f032dea57fa93081d7c0a1aa906430
-#  version: v20160617
 - package: github.com/buaazp/fasthttprouter
   version: v0.1.1
-- package: github.com/ant0ine/go-json-rest/rest
+- package: github.com/ant0ine/go-json-rest
+  subpackages:
+  - rest
+- package: github.com/mailru/easygo
+  subpackages:
+  - netpoll

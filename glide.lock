@@ -1,5 +1,5 @@
-hash: b179a945cf1421d823455babc1e131691265279cdee0490188345bc96bcfe023
-updated: 2017-08-23T11:53:37.634312579+02:00
+hash: 366501ad58d7ef0444fd5d66448af22e67dd175ad1b3409f30ca3bbe333723de
+updated: 2017-09-04T22:13:04.450055348+02:00
 imports:
 - name: github.com/ant0ine/go-json-rest
   version: 731ccde05312e2c1f5578a504ea8e77d38020340
@@ -16,6 +16,10 @@ imports:
   - zlib
 - name: github.com/klauspost/cpuid
   version: ae7887de9fa5d2db4eaa8174a7eff2c1ac00f2da
+- name: github.com/mailru/easygo
+  version: 6ced98f886dd65a113f1843d868623e6fbceca31
+  subpackages:
+  - netpoll
 - name: github.com/mailru/easyjson
   version: 2f5df55504ebc322e4d52d34df6a1f5b503bf26d
   subpackages:

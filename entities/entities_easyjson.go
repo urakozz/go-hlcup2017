@@ -7,6 +7,7 @@ import (
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
+	"sync/atomic"
 )
 
 // suppress unused package warning
@@ -342,6 +343,10 @@ func easyjson3e8ab7adDecodeGithubComUrakozzHighloadcampEntities2(in *jlexer.Lexe
 	}
 }
 func easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities2(out *jwriter.Writer, in Visit) {
+	if atomic.LoadInt32(&in.hasJSON) == 1 {
+		out.Raw(in.json, nil)
+		return
+	}
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -610,6 +615,10 @@ func easyjson3e8ab7adDecodeGithubComUrakozzHighloadcampEntities4(in *jlexer.Lexe
 	}
 }
 func easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities4(out *jwriter.Writer, in User) {
+	if atomic.LoadInt32(&in.hasJSON) == 1 {
+		out.Raw(in.json, nil)
+		return
+	}
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -1074,6 +1083,10 @@ func easyjson3e8ab7adDecodeGithubComUrakozzHighloadcampEntities8(in *jlexer.Lexe
 	}
 }
 func easyjson3e8ab7adEncodeGithubComUrakozzHighloadcampEntities8(out *jwriter.Writer, in Location) {
+	if atomic.LoadInt32(&in.hasJSON) == 1 {
+		out.Raw(in.json, nil)
+		return
+	}
 	out.RawByte('{')
 	first := true
 	_ = first

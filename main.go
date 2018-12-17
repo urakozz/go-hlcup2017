@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -15,8 +14,6 @@ import (
 	"time"
 
 	"runtime"
-
-	"bytes"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/buaazp/fasthttprouter"
@@ -50,14 +47,6 @@ func (mw *TimerMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFunc {
 	}
 }
 
-func WithKeepAlive(h fasthttp.RequestHandler) fasthttp.RequestHandler {
-	return func(ctx *fasthttp.RequestCtx) {
-		ctx.Response.Header.Set("Connection", "Keep-Alive")
-		ctx.Response.Header.Set("Server", "kozz")
-		ctx.Response.Header.Set("Content-Type", "application/json")
-		h(ctx)
-	}
-}
 func init() {
 	runtime.GOMAXPROCS(2)
 }
@@ -85,32 +74,26 @@ func main() {
 		}
 		log.Println("finish user", time.Since(t))
 	})
-	router.GET("/users/:id", WithKeepAlive(getUserFast))
-	router.GET("/users/:id/visits", WithKeepAlive(getUserVisitsFast))
+	router.GET("/users/:id", getUserFast)
+	router.GET("/users/:id/visits", getUserVisitsFast)
 
-	router.GET("/locations/:id", WithKeepAlive(getLocationFast))
-	router.GET("/locations/:id/avg", WithKeepAlive(getLocationAvgFast))
+	router.GET("/locations/:id", getLocationFast)
+	router.GET("/locations/:id/avg", getLocationAvgFast)
 	router.POST("/locations/:id", func(ctx *fasthttp.RequestCtx) {
-		t := time.Now()
 		if v, ok := ctx.UserValue("id").(string); ok && v == "new" {
-			log.Println(ctx.UserValue("id"), "new>>")
 			newLocationFast(ctx)
 		} else {
 			updateLocationFast(ctx)
 		}
-		log.Println("finish location", time.Since(t))
 	})
 
-	router.GET("/visits/:id", WithKeepAlive(getVisitFast))
+	router.GET("/visits/:id", getVisitFast)
 	router.POST("/visits/:id", func(ctx *fasthttp.RequestCtx) {
-		t := time.Now()
 		if v, ok := ctx.UserValue("id").(string); ok && v == "new" {
-			log.Println(ctx.UserValue("id"), "new>>")
 			newVisitFast(ctx)
 		} else {
 			updateVisitFast(ctx)
 		}
-		log.Println("finish location", time.Since(t))
 	})
 
 	lport := fmt.Sprintf(":%d", *port)
@@ -286,26 +269,6 @@ func updateVisitFast(ctx *fasthttp.RequestCtx) {
 }
 
 // NEW
-func newUser(w rest.ResponseWriter, r *rest.Request) {
-	u := &entities.User{}
-
-	err := easyjson.UnmarshalFromReader(r.Body, u)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if u.ID == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if err = u.Validate(); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	DataContainer.NewUser(u)
-	w.(io.Writer).Write(emptyResp)
-}
 func newUserFast(ctx *fasthttp.RequestCtx) {
 	u := &entities.User{}
 
@@ -481,9 +444,12 @@ func getLocationAvgFast(ctx *fasthttp.RequestCtx) {
 		ctx.Success("application/json", emptyAvg)
 		return
 	}
-	buf := bytes.NewBufferString(`{"avg":`)
+	avg += 1e-10
+	buf := bytebufferpool.Get()
+	buf.WriteString(`{"avg":`)
+	defer bytebufferpool.Put(buf)
 	buf.WriteString(strconv.FormatFloat(avg, 'f', 5, 64))
-	buf.WriteRune('}')
+	buf.WriteString("}")
 	ctx.Success("application/json", buf.Bytes())
 }
 
@@ -499,7 +465,6 @@ func Unzip() {
 		if f.FileInfo().IsDir() {
 			continue
 		}
-		DataContainer.SetNow(time.Now())
 
 		rc, err := f.Open()
 		if err != nil {
@@ -551,4 +516,3 @@ func Unzip() {
 	}
 	DataContainer.ProcessLoad()
 }
-

@@ -12,6 +12,7 @@ var DefaultShortVisitPool = &ShortVisitPool{}
 type UserPool struct {
 	pool sync.Pool
 }
+
 func (p *UserPool) Get() *User {
 	v := p.pool.Get()
 	if v != nil {
@@ -19,7 +20,7 @@ func (p *UserPool) Get() *User {
 	}
 	return &User{}
 }
-func (p *UserPool) Put(u *User)  {
+func (p *UserPool) Put(u *User) {
 	u.Reset()
 	p.pool.Put(u)
 }
@@ -27,6 +28,7 @@ func (p *UserPool) Put(u *User)  {
 type VisitPool struct {
 	pool sync.Pool
 }
+
 func (p *VisitPool) Get() *Visit {
 	v := p.pool.Get()
 	if v != nil {
@@ -34,7 +36,7 @@ func (p *VisitPool) Get() *Visit {
 	}
 	return &Visit{}
 }
-func (p *VisitPool) Put(u *Visit)  {
+func (p *VisitPool) Put(u *Visit) {
 	u.Reset()
 	p.pool.Put(u)
 }
@@ -42,6 +44,7 @@ func (p *VisitPool) Put(u *Visit)  {
 type LocationPool struct {
 	pool sync.Pool
 }
+
 func (p *LocationPool) Get() *Location {
 	v := p.pool.Get()
 	if v != nil {
@@ -49,7 +52,7 @@ func (p *LocationPool) Get() *Location {
 	}
 	return &Location{}
 }
-func (p *LocationPool) Put(u *Location)  {
+func (p *LocationPool) Put(u *Location) {
 	u.Reset()
 	p.pool.Put(u)
 }
@@ -57,6 +60,7 @@ func (p *LocationPool) Put(u *Location)  {
 type ShortVisitPool struct {
 	pool sync.Pool
 }
+
 func (p *ShortVisitPool) Get() *ShortVisit {
 	v := p.pool.Get()
 	if v != nil {
@@ -64,7 +68,7 @@ func (p *ShortVisitPool) Get() *ShortVisit {
 	}
 	return &ShortVisit{}
 }
-func (p *ShortVisitPool) Put(u *ShortVisit)  {
+func (p *ShortVisitPool) Put(u *ShortVisit) {
 	u.Reset()
 	p.pool.Put(u)
 }
